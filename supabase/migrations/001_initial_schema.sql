@@ -184,25 +184,36 @@ CREATE TABLE IF NOT EXISTS incoming_messages (
   id                    UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id               UUID        REFERENCES users (id) ON DELETE SET NULL,
   whatsapp_message_id   TEXT,
-  payload               JSONB       NOT NULL,
+  phone_from            TEXT,
   message_type          TEXT,
+  raw_text              TEXT,
+  payload               JSONB,
+  status                TEXT        NOT NULL DEFAULT 'received',
   processed             BOOLEAN     NOT NULL DEFAULT false,
   processing_error      TEXT,
   received_at           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-  CONSTRAINT incoming_messages_wamid_unique UNIQUE (whatsapp_message_id)
+  CONSTRAINT incoming_messages_wamid_unique  UNIQUE (whatsapp_message_id),
+  CONSTRAINT incoming_messages_status_check  CHECK  (status IN ('received', 'processed', 'failed'))
 );
 
-COMMENT ON TABLE  incoming_messages                    IS 'Audit log semua pesan masuk dari WhatsApp Cloud API, tersimpan sebelum diproses. Dipakai untuk debugging dan idempotency.';
-COMMENT ON COLUMN incoming_messages.user_id            IS 'NULL jika pengirim belum terdaftar (nomor tidak ada di tabel users).';
+COMMENT ON TABLE  incoming_messages                     IS 'Audit log semua pesan masuk dari WhatsApp Cloud API, tersimpan sebelum diproses. Dipakai untuk debugging dan idempotency.';
+COMMENT ON COLUMN incoming_messages.user_id             IS 'NULL jika pengirim belum terdaftar (nomor tidak ada di tabel users).';
 COMMENT ON COLUMN incoming_messages.whatsapp_message_id IS 'wamid (WhatsApp Message ID) unik dari Meta. Unique constraint mencegah proses pesan yang sama dua kali (idempotency).';
-COMMENT ON COLUMN incoming_messages.payload            IS 'Raw JSON payload dari WhatsApp webhook, disimpan utuh tanpa modifikasi. Berguna untuk re-process atau debug.';
-COMMENT ON COLUMN incoming_messages.message_type       IS 'Tipe pesan: text, audio, image, document, interactive, dll. Diambil dari payload.messages[0].type.';
-COMMENT ON COLUMN incoming_messages.processed          IS 'false = n8n belum memproses pesan ini. true = sudah diproses (berhasil atau gagal).';
-COMMENT ON COLUMN incoming_messages.processing_error   IS 'Error message jika processing gagal. NULL jika sukses. Dipakai untuk analisis failure rate.';
+COMMENT ON COLUMN incoming_messages.phone_from          IS 'Nomor WA pengirim dalam format E.164. Dipakai untuk rate limiting dan abuse detection query.';
+COMMENT ON COLUMN incoming_messages.raw_text            IS 'Teks mentah pesan (max 2000 char). NULL untuk audio/image. Dipakai untuk deteksi pesan identik berulang (flood).';
+COMMENT ON COLUMN incoming_messages.payload             IS 'Raw JSON payload dari WhatsApp webhook, disimpan utuh tanpa modifikasi. Berguna untuk re-process atau debug.';
+COMMENT ON COLUMN incoming_messages.message_type        IS 'Tipe pesan: text, audio, image, document, interactive, dll. Diambil dari payload.messages[0].type.';
+COMMENT ON COLUMN incoming_messages.status              IS 'received = baru masuk. processed = berhasil diproses. failed = gagal diproses.';
+COMMENT ON COLUMN incoming_messages.processed           IS 'false = n8n belum memproses pesan ini. true = sudah diproses (berhasil atau gagal). Legacy field, gunakan status untuk detail.';
+COMMENT ON COLUMN incoming_messages.processing_error    IS 'Error message jika processing gagal. NULL jika sukses. Dipakai untuk analisis failure rate.';
 
 CREATE INDEX IF NOT EXISTS idx_incoming_wamid
   ON incoming_messages (whatsapp_message_id);
+
+-- Index: rate limiting & abuse — cari pesan dari nomor tertentu dalam window waktu
+CREATE INDEX IF NOT EXISTS idx_incoming_phone_received
+  ON incoming_messages (phone_from, received_at DESC);
 
 -- Index: n8n retry query — cari pesan yang belum diproses
 CREATE INDEX IF NOT EXISTS idx_incoming_unprocessed
@@ -795,27 +806,33 @@ VALUES (
 -- POST-SEED: Sample incoming_messages (audit log)
 -- ─────────────────────────────────────────────────────────────
 
-INSERT INTO incoming_messages (user_id, whatsapp_message_id, payload, message_type, processed, received_at)
+INSERT INTO incoming_messages (user_id, whatsapp_message_id, phone_from, message_type, raw_text, payload, status, processed, received_at)
 VALUES
   -- pesan text dari Ibu Sari (sudah diproses)
   ('a0000001-0000-0000-0000-000000000001',
    'wamid.HBgLNjI4MTIzNDU2NzAwMQAA',
-   '{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"messages":[{"from":"+6281234567001","type":"text","text":{"body":"jualan hari ini 350rb"},"id":"wamid.HBgLNjI4MTIzNDU2NzAwMQAA"}}]}}]}]}',
-   'text', true,
+   '+6281234567001',
+   'text', 'jualan hari ini 350rb',
+   '{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"messages":[{"from":"+6281234567001","type":"text","text":{"body":"jualan hari ini 350rb"},"id":"wamid.HBgLNjI4MTIzNDU2NzAwMQAA"}]}}]}]}',
+   'processed', true,
    NOW() - INTERVAL '2 hours'),
 
   -- voice note dari Mbak Rina (sudah diproses)
   ('a0000001-0000-0000-0000-000000000005',
    'wamid.HBgLNjI4MTIzNDU2NzAwNQAA',
-   '{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"messages":[{"from":"+6281234567005","type":"audio","audio":{"id":"audio-001","mime_type":"audio/ogg; codecs=opus"},"id":"wamid.HBgLNjI4MTIzNDU2NzAwNQAA"}}]}}]}]}',
-   'audio', true,
+   '+6281234567005',
+   'audio', NULL,
+   '{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"messages":[{"from":"+6281234567005","type":"audio","audio":{"id":"audio-001","mime_type":"audio/ogg; codecs=opus"},"id":"wamid.HBgLNjI4MTIzNDU2NzAwNQAA"}]}}]}]}',
+   'processed', true,
    NOW() - INTERVAL '30 minutes'),
 
   -- pesan dari nomor tidak dikenal (belum diproses)
   (NULL,
    'wamid.UNKNOWN00000000001',
-   '{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"messages":[{"from":"+6299999999999","type":"text","text":{"body":"halo ini warung apa?"},"id":"wamid.UNKNOWN00000000001"}}]}}]}]}',
-   'text', false,
+   '+6299999999999',
+   'text', 'halo ini warung apa?',
+   '{"object":"whatsapp_business_account","entry":[{"changes":[{"value":{"messages":[{"from":"+6299999999999","type":"text","text":{"body":"halo ini warung apa?"},"id":"wamid.UNKNOWN00000000001"}]}}]}]}',
+   'received', false,
    NOW() - INTERVAL '45 minutes')
 ON CONFLICT DO NOTHING;
 

@@ -374,7 +374,7 @@ export async function processIncomingWebhook(req, sbCfg = {}) {
         phone_from:          phone,
         message_type:        type,
         raw_text:            text?.slice(0, 2000) ?? null,
-        raw_payload:         payload,
+        payload:             payload,
         received_at:         timestamp,
         status:              'received',
       });
