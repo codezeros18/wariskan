@@ -1,0 +1,19 @@
+{
+  "name": "wariskan-mvp",
+  "version": "0.1.0",
+  "description": "WhatsApp AI bookkeeper for Indonesian warung owners",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "scheduler":        "node helpers/scheduler.js",
+    "test-sheets":      "node tests/test-sheets.js",
+    "test-scheduler":   "node tests/test-scheduler.js",
+    "verify-env":       "node tests/verify-env.js"
+  },
+  "dependencies": {
+    "dotenv":      "^16.4.5",
+    "googleapis":  "^144.0.0"
+  }
+}

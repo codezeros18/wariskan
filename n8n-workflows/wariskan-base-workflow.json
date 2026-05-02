@@ -1,0 +1,742 @@
+{
+  "name": "Wariskan — WhatsApp Base Workflow",
+  "nodes": [
+    {
+      "id": "sn-00-overview",
+      "name": "📋 Overview",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-300, -560],
+      "parameters": {
+        "color": 4,
+        "width": 3000,
+        "height": 180,
+        "content": "## 🤖 Wariskan — WhatsApp AI Bookkeeper | Base Workflow\n\n**Builder 3 (PM/Infra):** Setup credentials (Supabase Postgres, Anthropic, OpenAI, WhatsApp) + env vars + aktifkan webhook di Meta Developer Console.\n**Builder 1:** Implement node **Claude Extract** — paste system prompt dari `prompts/extraction-system-prompt.md`, parse JSON response, connect ke Validate JSON.\n**Builder 2:** Implement **Whisper STT** + **Claude Vision** — handle download audio/image dari WA Media API, kirim ke OpenAI/Anthropic, connect ke Validate JSON.\n\n🟡 Kuning = Parsing & User | 🟣 Ungu = Routing | 🔴 Merah = AI (Builder 1 & 2) | 🟢 Hijau = Storage & Reply | 🔵 Biru = Verification"
+      }
+    },
+    {
+      "id": "sn-01-verify",
+      "name": "📝 Verification Section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [-300, -340],
+      "parameters": {
+        "color": 3,
+        "width": 720,
+        "height": 280,
+        "content": "## ✅ Meta Webhook Verification (GET)\n\nMeta kirim GET ke URL webhook saat pertama kali dikonfigurasi.\nWorkflow ini cek `hub.verify_token` dan balas dengan `hub.challenge`.\n\n**Env var yang dibutuhkan:**\n`WHATSAPP_VERIFY_TOKEN` = token yang kamu set di Meta Developer Console\n\n**Setup:** Webhook → Meta App → WhatsApp → Configuration → Callback URL"
+      }
+    },
+    {
+      "id": "sn-02-parse",
+      "name": "📨 Parse & User Section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [480, -340],
+      "parameters": {
+        "color": 1,
+        "width": 720,
+        "height": 280,
+        "content": "## 📨 Message Ingestion & User Management\n\n1. **Parse Payload** → ekstrak sender, messageId, type, content\n2. **Get or Create User** → lookup by phone di Supabase, buat baru jika belum ada\n3. **Log Incoming Message** → simpan raw payload (idempotent via wamid UNIQUE)\n\n⚠️ `rawPayload` disimpan untuk debugging.\nJangan hapus `incoming_messages` records saat testing.\n\n**Env vars:** `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`"
+      }
+    },
+    {
+      "id": "sn-03-ai",
+      "name": "🤖 AI Processing Section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1460, -340],
+      "parameters": {
+        "color": 2,
+        "width": 760,
+        "height": 280,
+        "content": "## 🤖 AI Processing — IMPLEMENT HERE (Builder 1 & 2)\n\n**Claude Extract (text/audio):** POST → Anthropic API\n- Paste system prompt dari `prompts/extraction-system-prompt.md`\n- Parse `$json.content[0].text` sebagai JSON\n- Env: `ANTHROPIC_API_KEY`\n\n**Whisper STT (audio):** POST → OpenAI `/v1/audio/transcriptions`\n- Kirim audio blob dari Download Media, terima transcript\n- Env: `OPENAI_API_KEY`\n\n**Claude Vision (image):** POST → Anthropic API dengan image_url\n- Model: claude-3-5-sonnet-20241022"
+      }
+    },
+    {
+      "id": "sn-04-storage",
+      "name": "💾 Storage & Reply Section",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [2280, -340],
+      "parameters": {
+        "color": 3,
+        "width": 740,
+        "height": 280,
+        "content": "## 💾 Storage & WhatsApp Reply\n\n1. **Validate JSON** → cek output Claude punya field wajib (category, nominal)\n2. **Save to Supabase** → POST `/rest/v1/transactions`\n3. **Save to Google Sheets** → call `appendTransaction()` via HTTP ke helper\n4. **Send WhatsApp Reply** → kirim konfirmasi ke user\n\n**Env vars:** `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`\n\n💡 Builder 1: connect Validate JSON → Save Supabase setelah Claude Extract ready"
+      }
+    },
+    {
+      "id": "sn-05-error",
+      "name": "🚨 Error Handling",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [1200, 460],
+      "parameters": {
+        "color": 2,
+        "width": 480,
+        "height": 180,
+        "content": "## 🚨 Error Notification (Placeholder)\n\nConnect node-node penting ke **Send Error Notification**:\n- Get or Create User → error output\n- Claude Extract → error output\n- Save to Supabase → error output\n\nDi n8n: Settings → Error Workflow → pilih workflow ini.\nAtau set `SLACK_ERROR_WEBHOOK` dan connect manual."
+      }
+    },
+    {
+      "id": "node-01-verify-webhook",
+      "name": "WhatsApp Verification",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [-240, -200],
+      "webhookId": "wh-verify-0001-4001-8001-wariskan0001",
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "whatsapp-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-01a-verify-if",
+      "name": "Verify Token Match",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [20, -200],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-mode",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "cond-token",
+              "leftValue": "={{ $json.query['hub.verify_token'] }}",
+              "rightValue": "={{ $env.WHATSAPP_VERIFY_TOKEN }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-02-respond-challenge",
+      "name": "Respond Hub Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [280, -280],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $('WhatsApp Verification').item.json.query['hub.challenge'] }}",
+        "options": {
+          "responseCode": 200
+        }
+      }
+    },
+    {
+      "id": "node-02b-respond-forbidden",
+      "name": "Respond Forbidden",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [280, -120],
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Forbidden: invalid verify_token",
+        "options": {
+          "responseCode": 403
+        }
+      }
+    },
+    {
+      "id": "node-03-messages-webhook",
+      "name": "WhatsApp Messages",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [480, 100],
+      "webhookId": "wh-msg-00002-4001-8001-wariskan0002",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "onReceived",
+        "responseData": "noData",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-04-parse-payload",
+      "name": "Parse WhatsApp Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [740, 100],
+      "parameters": {
+        "jsCode": "// Extract message data from WhatsApp Cloud API webhook payload\nconst body = $input.first().json.body;\n\nif (!body?.entry?.length) {\n  // Could be a webhook test ping from Meta\n  return [{ json: { _skip: true, reason: 'Empty or invalid payload — possible Meta test ping' } }];\n}\n\nconst value   = body.entry[0]?.changes?.[0]?.value;\nconst message = value?.messages?.[0];\nconst contact = value?.contacts?.[0];\n\nif (!message) {\n  // Status update (read receipts, delivery confirmations) — not an error\n  return [{ json: { _skip: true, reason: 'Status update, no message to process' } }];\n}\n\nconst messageType = message.type; // text | audio | image | document | sticker | video\n\nreturn [{\n  json: {\n    senderPhone:   message.from,\n    messageId:     message.id,\n    messageType,\n    timestamp:     new Date(parseInt(message.timestamp, 10) * 1000).toISOString(),\n    textContent:   message.text?.body     ?? null,\n    mediaId:       message.audio?.id ?? message.image?.id ?? message.document?.id ?? null,\n    mediaMimeType: message.audio?.mime_type ?? message.image?.mime_type ?? null,\n    senderName:    contact?.profile?.name ?? null,\n    waPhoneId:     value?.metadata?.phone_number_id ?? null,\n    rawPayload:    JSON.stringify(body),\n    _skip:         false,\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-05-get-create-user",
+      "name": "Get or Create User",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 100],
+      "parameters": {
+        "jsCode": "const { senderPhone, senderName, _skip } = $input.first().json;\n\n// Pass-through for status updates and pings\nif (_skip) return [$input.first()];\n\nconst BASE  = $env.SUPABASE_URL;\nconst KEY   = $env.SUPABASE_SERVICE_KEY;\nconst hdrs  = {\n  'apikey':        KEY,\n  'Authorization': `Bearer ${KEY}`,\n  'Content-Type':  'application/json',\n};\n\n// ── 1. Lookup existing user ──────────────────────────────────\nconst lookupRes = await fetch(\n  `${BASE}/rest/v1/users?whatsapp_phone=eq.${encodeURIComponent(senderPhone)}&select=id,whatsapp_phone,display_name,sheet_id,sheet_url`,\n  { headers: hdrs }\n);\nconst existing = await lookupRes.json();\n\nlet user;\nlet isNew = false;\n\nif (existing?.length > 0) {\n  user = existing[0];\n} else {\n  // ── 2. Create new user ──────────────────────────────────────\n  const createRes = await fetch(`${BASE}/rest/v1/users`, {\n    method:  'POST',\n    headers: { ...hdrs, 'Prefer': 'return=representation' },\n    body:    JSON.stringify({\n      whatsapp_phone: senderPhone,\n      display_name:   senderName ?? senderPhone,\n    }),\n  });\n  const created = await createRes.json();\n  user  = created[0];\n  isNew = true;\n  // TODO (Builder 3): call createUserSheet() here when sheet helper API is live\n  // then PATCH user.sheet_id + user.sheet_url back to Supabase\n}\n\n// ── 3. Update last_active_at (non-critical, swallow errors) ──\ntry {\n  await fetch(`${BASE}/rest/v1/users?id=eq.${user.id}`, {\n    method:  'PATCH',\n    headers: hdrs,\n    body:    JSON.stringify({ last_active_at: new Date().toISOString() }),\n  });\n} catch (_) { /* intentionally ignored */ }\n\nreturn [{ json: { ...($input.first().json), user: { ...user, isNew } } }];"
+      }
+    },
+    {
+      "id": "node-06-log-message",
+      "name": "Log Incoming Message",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.4,
+      "position": [1260, 100],
+      "credentials": {
+        "postgres": {
+          "id": "REPLACE_WITH_POSTGRES_CRED_ID",
+          "name": "Supabase Postgres"
+        }
+      },
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO incoming_messages (user_id, whatsapp_message_id, payload, message_type, processed, received_at)\nVALUES (\n  NULLIF('{{ $json.user?.id ?? \"\" }}', '')::UUID,\n  '{{ $json.messageId }}',\n  '{{ $json.rawPayload }}'::JSONB,\n  '{{ $json.messageType }}',\n  false,\n  NOW()\n)\nON CONFLICT (whatsapp_message_id) DO NOTHING;",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-07-route-type",
+      "name": "Route by Message Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1520, 100],
+      "parameters": {
+        "mode": "rules",
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "id": "rule-text",
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "text",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Text"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "id": "rule-audio",
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "audio",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Audio"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "typeValidation": "loose" },
+                "conditions": [
+                  {
+                    "id": "rule-image",
+                    "leftValue": "={{ $json.messageType }}",
+                    "rightValue": "image",
+                    "operator": { "type": "string", "operation": "equals" }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Image"
+            }
+          ]
+        },
+        "fallbackOutput": "extra",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-08-handle-text",
+      "name": "Handle Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, -60],
+      "parameters": {
+        "jsCode": "// Prepare text message for Claude extraction\n// Builder 1: add normalization logic here (lowercase, strip emoji, etc.) if needed\n\nconst { textContent, senderPhone, _skip } = $input.first().json;\n\nif (_skip || !textContent?.trim()) {\n  return [{ json: { ...($input.first().json), _skipExtraction: true, promptInput: null } }];\n}\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    promptInput:    textContent.trim(),\n    processingMode: 'text',\n    _skipExtraction: false,\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-09-download-audio",
+      "name": "Download Audio Media",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 100],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v18.0/{{ $json.mediaId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node-10-download-image",
+      "name": "Download Image Media",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1780, 280],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v18.0/{{ $json.mediaId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node-11-unsupported",
+      "name": "Send Unsupported Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1780, 460],
+      "parameters": {
+        "jsCode": "const { senderPhone, messageType } = $input.first().json;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    to:        senderPhone,\n    replyText: `Maaf kak, saya belum bisa baca pesan ${messageType ?? 'jenis ini'} 🙏\\n\\nSilakan kirim:\\n📝 Pesan teks (contoh: \"jual 350rb\")\\n🎤 Pesan suara\\n📷 Foto struk/nota`,\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-12-whisper-stt",
+      "name": "Whisper STT",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2040, 100],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "whisper-1"
+            },
+            {
+              "name": "language",
+              "value": "id"
+            },
+            {
+              "name": "response_format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "notes": "Builder 2: tambahkan 'file' parameter dari Download Audio Media output. Gunakan binary data dari response Download Audio."
+    },
+    {
+      "id": "node-13-claude-extract",
+      "name": "Claude Extract",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2040, -60],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={\n  \"model\": \"claude-3-5-haiku-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER — Builder 1: paste isi prompts/extraction-system-prompt.md di sini\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.promptInput ?? $json.transcript ?? '') }}\n    }\n  ]\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "notes": "Builder 1: (1) ganti system prompt, (2) parse $json.content[0].text sebagai JSON di node Validate JSON setelahnya."
+    },
+    {
+      "id": "node-14-claude-vision",
+      "name": "Claude Vision",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2040, 280],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={\n  \"model\": \"claude-3-5-sonnet-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER — Builder 2: paste vision system prompt dari prompts/vision-system-prompt.md\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image\",\n          \"source\": {\n            \"type\": \"url\",\n            \"url\": \"PLACEHOLDER — Builder 2: isi dengan URL gambar dari Download Image Media\"\n          }\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"Tolong ekstrak semua transaksi dari struk ini.\"\n        }\n      ]\n    }\n  ]\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node-15-validate-json",
+      "name": "Validate JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2300, -60],
+      "parameters": {
+        "jsCode": "// ── Validate Claude's extraction output ───────────────────────\n// Builder 1: update this after Claude Extract node is implemented.\n// Expected: Claude returns JSON string inside content[0].text\n\nconst data = $input.first().json;\n\n// Skip if marked (status updates, unsupported types)\nif (data._skipExtraction) {\n  return [{ json: { ...data, _valid: false, _reason: 'Extraction skipped' } }];\n}\n\n// Parse Claude response\nlet extracted = null;\ntry {\n  // Claude returns: { content: [{ type: 'text', text: '{\"category\":...}' }] }\n  const claudeText = data.content?.[0]?.text ?? data.text ?? null;\n  if (claudeText) {\n    extracted = JSON.parse(claudeText);\n  }\n} catch (err) {\n  return [{ json: { ...data, _valid: false, _reason: `JSON parse error: ${err.message}`, _rawClaude: data.content?.[0]?.text } }];\n}\n\nif (!extracted) {\n  return [{ json: { ...data, _valid: false, _reason: 'No extraction from Claude — check Claude Extract node' } }];\n}\n\n// Minimum required fields\nconst required = ['category', 'nominal'];\nconst missing  = required.filter(k => extracted[k] == null);\nif (missing.length > 0) {\n  return [{ json: { ...data, _valid: false, _reason: `Missing fields: ${missing.join(', ')}`, extractedData: extracted } }];\n}\n\n// Valid categories per Supabase schema\nconst validCategories = ['pemasukan','pengeluaran','hutang','piutang','bayar_hutang','terima_piutang','unclear'];\nif (!validCategories.includes(extracted.category)) {\n  extracted.category = 'unclear';\n}\n\nreturn [{ json: { ...data, extractedData: extracted, _valid: true } }];"
+      }
+    },
+    {
+      "id": "node-16-save-supabase",
+      "name": "Save to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2560, -60],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/transactions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "return=representation"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={\n  \"user_id\":        {{ JSON.stringify($json.user?.id ?? null) }},\n  \"raw_input\":      {{ JSON.stringify($json.textContent ?? $json.transcript ?? '') }},\n  \"input_type\":     {{ JSON.stringify($json.messageType === 'audio' ? 'voice' : ($json.messageType === 'image' ? 'image' : 'text')) }},\n  \"transcript\":     {{ JSON.stringify($json.transcript ?? null) }},\n  \"category\":       {{ JSON.stringify($json.extractedData?.category ?? 'unclear') }},\n  \"nominal\":        {{ $json.extractedData?.nominal ?? 0 }},\n  \"pihak\":          {{ JSON.stringify($json.extractedData?.pihak ?? null) }},\n  \"item\":           {{ JSON.stringify($json.extractedData?.item ?? null) }},\n  \"tanggal\":        {{ JSON.stringify($json.extractedData?.tanggal ?? new Date().toISOString().split('T')[0]) }},\n  \"jatuh_tempo\":    {{ JSON.stringify($json.extractedData?.jatuh_tempo ?? null) }},\n  \"status\":         \"aktif\",\n  \"confidence\":     {{ JSON.stringify($json.extractedData?.confidence ?? 'low') }},\n  \"ai_model_version\": \"claude-3-5-haiku-20241022\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node-17-save-sheets",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [2820, -60],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.HELPER_API_URL ?? 'http://localhost:3000' }}/api/sheets/append",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.HELPER_API_KEY ?? 'dev' }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={\n  \"sheetId\":     {{ JSON.stringify($json.user?.sheet_id ?? null) }},\n  \"transaction\": {{ JSON.stringify($json.extractedData ?? {}) }}\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "notes": "Builder 3: Ini placeholder — helper API belum ada. Untuk MVP, bisa langsung call googleSheetsHelper.appendTransaction() via Code node jika lebih mudah."
+    },
+    {
+      "id": "node-18-send-reply",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [3080, 100],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v18.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\":   {{ JSON.stringify($json.senderPhone ?? $json.to) }},\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": {{ JSON.stringify($json.replyText ?? $json.confirmationMessage ?? '✅ Transaksi dicatat!') }}\n  }\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node-19-build-reply",
+      "name": "Build Reply Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2820, 100],
+      "parameters": {
+        "jsCode": "// Build human-readable confirmation message in Bahasa Indonesia\nconst data = $input.first().json;\nconst ext  = data.extractedData;\n\nif (!ext || !data._valid) {\n  // Ask for clarification\n  return [{\n    json: {\n      ...data,\n      replyText: `Maaf kak, saya kurang paham maksudnya 🙏\\nBisa dijelaskan lebih detail?\\nContoh: \"jual 350rb\" atau \"beli gula 25rb\"`,\n    }\n  }];\n}\n\n// Format nominal\nconst nominal = Number(ext.nominal ?? 0).toLocaleString('id-ID');\n\n// Category-specific messages\nconst messages = {\n  pemasukan:      `✅ Dicatat! Pemasukan Rp ${nominal}${ext.item ? ` (${ext.item})` : ''} sudah masuk ke buku ya kak 📒`,\n  pengeluaran:    `✅ Dicatat! Pengeluaran Rp ${nominal}${ext.item ? ` untuk ${ext.item}` : ''} sudah masuk ke buku 📒`,\n  hutang:         `✅ Dicatat! Hutang Rp ${nominal}${ext.pihak ? ` ke ${ext.pihak}` : ''}${ext.jatuh_tempo ? ` (jatuh tempo: ${ext.jatuh_tempo})` : ''} sudah masuk 📒`,\n  piutang:        `✅ Dicatat! Piutang Rp ${nominal}${ext.pihak ? ` dari ${ext.pihak}` : ''}${ext.jatuh_tempo ? ` (jatuh tempo: ${ext.jatuh_tempo})` : ''} sudah masuk 📒`,\n  bayar_hutang:   `✅ Dicatat! Bayar hutang Rp ${nominal}${ext.pihak ? ` ke ${ext.pihak}` : ''} sudah masuk 📒`,\n  terima_piutang: `✅ Dicatat! Terima piutang Rp ${nominal}${ext.pihak ? ` dari ${ext.pihak}` : ''} sudah masuk 📒`,\n  unclear:        `🤔 Hmm, saya kurang yakin nih kak. Ini pemasukan atau pengeluaran?\\nNominalnya Rp ${nominal}${ext.pihak ? ` (${ext.pihak})` : ''}.`,\n};\n\nconst replyText = messages[ext.category] ?? messages.unclear;\n\nreturn [{ json: { ...data, replyText, to: data.senderPhone } }];"
+      }
+    },
+    {
+      "id": "node-20-error-notification",
+      "name": "Send Error Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1520, 520],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SLACK_ERROR_WEBHOOK ?? 'https://hooks.slack.com/services/REPLACE_ME' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "string",
+        "body": "={\n  \"text\": \"🚨 *Wariskan Workflow Error*\",\n  \"attachments\": [{\n    \"color\": \"danger\",\n    \"fields\": [\n      { \"title\": \"Error\",   \"value\": {{ JSON.stringify($json.error?.message ?? $json.message ?? 'Unknown error') }}, \"short\": false },\n      { \"title\": \"Node\",    \"value\": {{ JSON.stringify($runIndex?.toString() ?? 'unknown') }}, \"short\": true },\n      { \"title\": \"Time\",    \"value\": {{ JSON.stringify(new Date().toISOString()) }}, \"short\": true }\n    ]\n  }]\n}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Verification": {
+      "main": [
+        [{ "node": "Verify Token Match", "type": "main", "index": 0 }]
+      ]
+    },
+    "Verify Token Match": {
+      "main": [
+        [{ "node": "Respond Hub Challenge",  "type": "main", "index": 0 }],
+        [{ "node": "Respond Forbidden",      "type": "main", "index": 0 }]
+      ]
+    },
+    "WhatsApp Messages": {
+      "main": [
+        [{ "node": "Parse WhatsApp Payload", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse WhatsApp Payload": {
+      "main": [
+        [{ "node": "Get or Create User", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get or Create User": {
+      "main": [
+        [{ "node": "Log Incoming Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Incoming Message": {
+      "main": [
+        [{ "node": "Route by Message Type", "type": "main", "index": 0 }]
+      ]
+    },
+    "Route by Message Type": {
+      "main": [
+        [{ "node": "Handle Text",          "type": "main", "index": 0 }],
+        [{ "node": "Download Audio Media", "type": "main", "index": 0 }],
+        [{ "node": "Download Image Media", "type": "main", "index": 0 }],
+        [{ "node": "Send Unsupported Reply","type": "main", "index": 0 }]
+      ]
+    },
+    "Handle Text": {
+      "main": [
+        [{ "node": "Claude Extract", "type": "main", "index": 0 }]
+      ]
+    },
+    "Download Audio Media": {
+      "main": [
+        [{ "node": "Whisper STT", "type": "main", "index": 0 }]
+      ]
+    },
+    "Whisper STT": {
+      "main": [
+        [{ "node": "Claude Extract", "type": "main", "index": 0 }]
+      ]
+    },
+    "Download Image Media": {
+      "main": [
+        [{ "node": "Claude Vision", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude Extract": {
+      "main": [
+        [{ "node": "Validate JSON", "type": "main", "index": 0 }]
+      ]
+    },
+    "Claude Vision": {
+      "main": [
+        [{ "node": "Validate JSON", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate JSON": {
+      "main": [
+        [{ "node": "Save to Supabase", "type": "main", "index": 0 }]
+      ]
+    },
+    "Save to Supabase": {
+      "main": [
+        [{ "node": "Save to Google Sheets", "type": "main", "index": 0 }]
+      ]
+    },
+    "Save to Google Sheets": {
+      "main": [
+        [{ "node": "Build Reply Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Reply Message": {
+      "main": [
+        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Unsupported Reply": {
+      "main": [
+        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "staticData": null,
+  "pinData": {},
+  "tags": [{ "name": "wariskan" }]
+}

@@ -1,0 +1,99 @@
+{
+  "name": "Wariskan - Weekly Report Cron",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 13 * * 0"
+            }
+          ]
+        }
+      },
+      "id": "cron-weekly-trigger",
+      "name": "Weekly Trigger (Sunday 20:00 WIB)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "notes": "Sunday 20:00 WIB = Sunday 13:00 UTC"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SCHEDULER_BASE_URL }}/run/weekly-report",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.SCHEDULER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 180000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "http-weekly-report",
+      "name": "Run Weekly Report Job",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst body = res.body ?? res;\n\nconsole.log('[Wariskan Cron] weekly-report result:');\nconsole.log(JSON.stringify(body, null, 2));\n\nif (!body.success) {\n  console.error('[Wariskan Cron] weekly-report job failed:', body.error);\n}\n\nconst summary = {\n  date: new Date().toISOString(),\n  reportsSent: body.processedCount ?? 0,\n  skipped: body.skippedCount ?? 0,\n  errors: body.errors?.length ?? 0,\n  durationMs: body.durationMs ?? null,\n};\n\nconsole.log('[Wariskan Cron] Weekly report run complete:', JSON.stringify(summary));\nreturn [{ json: summary }];"
+      },
+      "id": "log-weekly-result",
+      "name": "Log Weekly Report Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "content": "## 📊 Wariskan — Weekly Report Cron\n\nRuns every **Sunday at 20:00 WIB** (13:00 UTC).\n\nSends a full weekly financial summary to every active user covering **Mon–Sun** of the past week.\n\n**Idempotent** — duplicate reports for the same week are skipped automatically (checked via `weekly_reports` table).\n\n**Env vars needed:**\n- `SCHEDULER_BASE_URL` — e.g. `http://localhost:3001`\n- `SCHEDULER_API_KEY` — optional",
+        "height": 220,
+        "width": 360
+      },
+      "id": "sticky-weekly-info",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 80]
+    }
+  ],
+  "connections": {
+    "Weekly Trigger (Sunday 20:00 WIB)": {
+      "main": [
+        [{ "node": "Run Weekly Report Job", "type": "main", "index": 0 }]
+      ]
+    },
+    "Run Weekly Report Job": {
+      "main": [
+        [{ "node": "Log Weekly Report Result", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": ["wariskan", "cron", "weekly-report"],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

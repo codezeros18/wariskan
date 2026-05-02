@@ -1,0 +1,150 @@
+{
+  "name": "Wariskan - Daily Reminder Cron",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "cron-daily-trigger",
+      "name": "Daily Trigger (09:00 WIB)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [240, 300],
+      "notes": "09:00 WIB = 02:00 UTC (WIB is UTC+7, no DST)"
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SCHEDULER_BASE_URL }}/run/reminder-creation",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.SCHEDULER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "http-create-reminders",
+      "name": "Create Due Reminders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst body = res.body ?? res;\n\nconsole.log('[Wariskan Cron] reminder-creation result:');\nconsole.log(JSON.stringify(body, null, 2));\n\nif (!body.success) {\n  throw new Error(`reminder-creation failed: ${body.error ?? 'unknown'}`);\n}\n\nreturn [{ json: { step: 'reminder-creation', ...body } }];"
+      },
+      "id": "log-creation-result",
+      "name": "Log Creation Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SCHEDULER_BASE_URL }}/run/debt-reminder",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.SCHEDULER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "http-send-reminders",
+      "name": "Send Debt Reminders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const res = $input.first().json;\nconst body = res.body ?? res;\n\nconsole.log('[Wariskan Cron] debt-reminder result:');\nconsole.log(JSON.stringify(body, null, 2));\n\nif (!body.success) {\n  console.warn('[Wariskan Cron] debt-reminder reported failure — check scheduler logs');\n}\n\nconst summary = {\n  date: new Date().toISOString(),\n  remindersSent: body.processedCount ?? 0,\n  skipped: body.skippedCount ?? 0,\n  errors: body.errors?.length ?? 0,\n  durationMs: body.durationMs ?? null,\n};\n\nconsole.log('[Wariskan Cron] Daily reminder run complete:', JSON.stringify(summary));\nreturn [{ json: summary }];"
+      },
+      "id": "log-reminder-result",
+      "name": "Log Reminder Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "content": "## 📅 Wariskan — Daily Reminder Cron\n\nRuns every day at **09:00 WIB** (02:00 UTC).\n\n**Flow:**\n1. Create reminder rows for debts due tomorrow / today / overdue\n2. Send WhatsApp reminders for all pending rows\n\n**Env vars needed:**\n- `SCHEDULER_BASE_URL` — e.g. `http://localhost:3001`\n- `SCHEDULER_API_KEY` — optional, set in scheduler.js",
+        "height": 200,
+        "width": 360
+      },
+      "id": "sticky-daily-info",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 80]
+    }
+  ],
+  "connections": {
+    "Daily Trigger (09:00 WIB)": {
+      "main": [
+        [{ "node": "Create Due Reminders", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Due Reminders": {
+      "main": [
+        [{ "node": "Log Creation Result", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log Creation Result": {
+      "main": [
+        [{ "node": "Send Debt Reminders", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Debt Reminders": {
+      "main": [
+        [{ "node": "Log Reminder Result", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": ["wariskan", "cron", "reminders"],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}

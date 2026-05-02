@@ -1,0 +1,164 @@
+{
+  "name": "Wariskan - Manual Demo Trigger",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "demo/run-job",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-demo",
+      "name": "Demo Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 320],
+      "webhookId": "wariskan-demo-trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Validate incoming demo request ─────────────────────────────────────────\nconst body = $input.first().json?.body ?? $input.first().json ?? {};\n\nconst VALID_JOBS = ['debt-reminder', 'weekly-report', 'reminder-creation', 'cleanup'];\n\nconst jobType = body.job_type ?? body.jobType ?? null;\nconst userId  = body.user_id  ?? body.userId  ?? null;\n\nif (!jobType) {\n  throw new Error('Missing field: job_type. Valid values: ' + VALID_JOBS.join(', '));\n}\nif (!VALID_JOBS.includes(jobType)) {\n  throw new Error(`Unknown job_type \"${jobType}\". Valid: ${VALID_JOBS.join(', ')}`);\n}\n\nconsole.log(`[Wariskan DEMO] ▶ Running job: ${jobType}${userId ? ` for user: ${userId}` : ' (all users)'}`);\nconsole.log(`[Wariskan DEMO] Started at: ${new Date().toISOString()}`);\n\nreturn [{ json: { jobType, userId, startedAt: new Date().toISOString() } }];"
+      },
+      "id": "validate-input",
+      "name": "Validate & Log Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 320]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.SCHEDULER_BASE_URL }}/demo/run-job",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.SCHEDULER_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "body": {
+          "parameters": [
+            {
+              "name": "job_type",
+              "value": "={{ $json.jobType }}"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $json.userId }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "id": "http-call-scheduler",
+      "name": "Call Scheduler",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [680, 320]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ── Format demo output for the judge's screen ──────────────────────────────\nconst schedulerRes = $input.first().json;\nconst jobMeta      = $('Validate & Log Request').first().json;\n\nconst body = schedulerRes.body ?? schedulerRes;\n\n// Visible in n8n execution log — this is the 'see, the agent is doing it' moment\nconsole.log('═'.repeat(50));\nconsole.log('🤖 WARISKAN DEMO — JOB RESULT');\nconsole.log('═'.repeat(50));\nconsole.log(`Job      : ${jobMeta.jobType}`);\nconsole.log(`User     : ${jobMeta.userId ?? '(all users)'}`);\nconsole.log(`Success  : ${body.success}`);\nconsole.log(`Processed: ${body.processedCount ?? 'N/A'}`);\nconsole.log(`Skipped  : ${body.skippedCount  ?? 'N/A'}`);\nconsole.log(`Duration : ${body.durationMs    ?? 'N/A'} ms`);\nif (body.errors?.length) {\n  console.log(`Errors   : ${body.errors.length}`);\n  body.errors.forEach((e, i) => console.log(`  [${i+1}] ${e}`));\n}\nconsole.log('═'.repeat(50));\n\n// Structured output for respond node\nconst output = {\n  job:          jobMeta.jobType,\n  user:         jobMeta.userId ?? 'all',\n  success:      body.success ?? false,\n  processed:    body.processedCount ?? 0,\n  skipped:      body.skippedCount  ?? 0,\n  durationMs:   body.durationMs    ?? null,\n  errors:       body.errors        ?? [],\n  startedAt:    jobMeta.startedAt,\n  finishedAt:   new Date().toISOString(),\n};\n\nreturn [{ json: output }];"
+      },
+      "id": "format-output",
+      "name": "Format Demo Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json, null, 2) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-demo",
+      "name": "Respond to Demo Caller",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1120, 320]
+    },
+    {
+      "parameters": {
+        "content": "## 🎬 Wariskan — Manual Demo Trigger\n\n**USE THIS DURING LIVE DEMO / HACKATHON PITCH**\n\n### How to trigger:\n```\nPOST /webhook/demo/run-job\nContent-Type: application/json\n\n{\n  \"job_type\": \"weekly-report\",\n  \"user_id\": \"a0000001-...\"\n}\n```\n\n### Valid job_type values:\n- `debt-reminder` — send today's due reminders\n- `weekly-report` — send weekly summary\n- `reminder-creation` — create upcoming reminder rows\n- `cleanup` — cancel stale pending transactions\n\n### For demo effect:\n1. Open n8n execution log\n2. Trigger via curl / Postman\n3. Show judges the **Format Demo Output** node — big log block with emoji\n4. Show the WhatsApp message arriving on phone\n\n### Env vars:\n- `SCHEDULER_BASE_URL` — scheduler HTTP server URL\n- `SCHEDULER_API_KEY` — optional auth key",
+        "height": 460,
+        "width": 420,
+        "color": 4
+      },
+      "id": "sticky-demo-info",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [240, 60]
+    },
+    {
+      "parameters": {
+        "content": "### 💡 Quick curl for demo:\n```bash\ncurl -X POST \\\n  http://localhost:5678/webhook/demo/run-job \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"job_type\":\"weekly-report\",\"user_id\":\"YOUR_USER_ID\"}'\n```",
+        "height": 160,
+        "width": 380
+      },
+      "id": "sticky-curl",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [680, 560]
+    }
+  ],
+  "connections": {
+    "Demo Webhook": {
+      "main": [
+        [{ "node": "Validate & Log Request", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate & Log Request": {
+      "main": [
+        [{ "node": "Call Scheduler", "type": "main", "index": 0 }]
+      ]
+    },
+    "Call Scheduler": {
+      "main": [
+        [{ "node": "Format Demo Output", "type": "main", "index": 0 }]
+      ]
+    },
+    "Format Demo Output": {
+      "main": [
+        [{ "node": "Respond to Demo Caller", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": ""
+  },
+  "tags": ["wariskan", "demo", "manual-trigger"],
+  "meta": {
+    "templateCredsSetupCompleted": false
+  }
+}
