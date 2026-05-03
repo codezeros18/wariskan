@@ -97,38 +97,22 @@
       "id": "node-01a-verify-if",
       "name": "Verify Token Match",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "typeVersion": 1,
       "position": [20, -200],
       "parameters": {
         "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict"
-          },
-          "conditions": [
+          "string": [
             {
-              "id": "cond-mode",
-              "leftValue": "={{ $json.query['hub.mode'] }}",
-              "rightValue": "subscribe",
-              "operator": {
-                "type": "string",
-                "operation": "equals",
-                "name": "filter.operator.equals"
-              }
+              "value1": "={{ $json.query['hub.mode'] }}",
+              "operation": "equal",
+              "value2": "subscribe"
             },
             {
-              "id": "cond-token",
-              "leftValue": "={{ $json.query['hub.verify_token'] }}",
-              "rightValue": "={{ $env.WHATSAPP_VERIFY_TOKEN }}",
-              "operator": {
-                "type": "string",
-                "operation": "equals",
-                "name": "filter.operator.equals"
-              }
+              "value1": "={{ $json.query['hub.verify_token'] }}",
+              "operation": "equal",
+              "value2": "={{ $env.WHATSAPP_VERIFY_TOKEN }}"
             }
-          ],
-          "combinator": "and"
+          ]
         }
       }
     },
@@ -171,7 +155,6 @@
         "httpMethod": "POST",
         "path": "whatsapp-webhook",
         "responseMode": "onReceived",
-        "responseData": "noData",
         "options": {}
       }
     },
@@ -182,7 +165,7 @@
       "typeVersion": 2,
       "position": [740, 100],
       "parameters": {
-        "jsCode": "// Extract message data from WhatsApp Cloud API webhook payload\nconst body = $input.first().json.body;\n\nif (!body?.entry?.length) {\n  // Could be a webhook test ping from Meta\n  return [{ json: { _skip: true, reason: 'Empty or invalid payload — possible Meta test ping' } }];\n}\n\nconst value   = body.entry[0]?.changes?.[0]?.value;\nconst message = value?.messages?.[0];\nconst contact = value?.contacts?.[0];\n\nif (!message) {\n  // Status update (read receipts, delivery confirmations) — not an error\n  return [{ json: { _skip: true, reason: 'Status update, no message to process' } }];\n}\n\nconst messageType = message.type; // text | audio | image | document | sticker | video\n\nreturn [{\n  json: {\n    senderPhone:   message.from,\n    messageId:     message.id,\n    messageType,\n    timestamp:     new Date(parseInt(message.timestamp, 10) * 1000).toISOString(),\n    textContent:   message.text?.body     ?? null,\n    mediaId:       message.audio?.id ?? message.image?.id ?? message.document?.id ?? null,\n    mediaMimeType: message.audio?.mime_type ?? message.image?.mime_type ?? null,\n    senderName:    contact?.profile?.name ?? null,\n    waPhoneId:     value?.metadata?.phone_number_id ?? null,\n    rawPayload:    JSON.stringify(body),\n    _skip:         false,\n  }\n}];"
+        "jsCode": "// Extract message data from WaHA (WhatsApp HTTP API) webhook payload\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst event   = body.event;\nconst payload = body.payload;\n\n// Skip non-message events (message.ack, message.reaction, etc.)\nif (!payload || event !== 'message') {\n  return [{ json: { _skip: true, reason: `Non-message event: ${event ?? 'unknown'}` } }];\n}\n\n// WaHA type: 'chat' = text, 'image', 'audio', 'video', 'document'\nconst messageType = payload.type === 'chat' ? 'text' : (payload.type ?? 'text');\nconst senderPhone = (payload.from ?? '').replace('@c.us', '').replace('@g.us', '');\nconst senderName  = payload._data?.notifyName ?? payload.pushName ?? senderPhone;\n\nreturn [{\n  json: {\n    senderPhone,\n    messageId:     payload.id,\n    messageType,\n    timestamp:     new Date((payload.timestamp ?? 0) * 1000).toISOString(),\n    textContent:   payload.body ?? null,\n    mediaId:       payload.mediaUrl ?? null,\n    mediaMimeType: payload.mimetype ?? null,\n    senderName,\n    waPhoneId:     null,\n    rawPayload:    JSON.stringify(body),\n    _skip:         false,\n  }\n}];"
       }
     },
     {
@@ -209,64 +192,19 @@
       "id": "node-07-route-type",
       "name": "Route by Message Type",
       "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
+      "typeVersion": 2,
       "position": [1520, 100],
       "parameters": {
-        "mode": "rules",
+        "mode": "expression",
+        "output": "={{ $json.messageType === 'text' ? 0 : $json.messageType === 'audio' ? 1 : $json.messageType === 'image' ? 2 : 3 }}",
         "rules": {
           "rules": [
-            {
-              "conditions": {
-                "options": { "caseSensitive": false, "typeValidation": "loose" },
-                "conditions": [
-                  {
-                    "id": "rule-text",
-                    "leftValue": "={{ $json.messageType }}",
-                    "rightValue": "text",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Text"
-            },
-            {
-              "conditions": {
-                "options": { "caseSensitive": false, "typeValidation": "loose" },
-                "conditions": [
-                  {
-                    "id": "rule-audio",
-                    "leftValue": "={{ $json.messageType }}",
-                    "rightValue": "audio",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Audio"
-            },
-            {
-              "conditions": {
-                "options": { "caseSensitive": false, "typeValidation": "loose" },
-                "conditions": [
-                  {
-                    "id": "rule-image",
-                    "leftValue": "={{ $json.messageType }}",
-                    "rightValue": "image",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ],
-                "combinator": "and"
-              },
-              "renameOutput": true,
-              "outputKey": "Image"
-            }
+            {},
+            {},
+            {}
           ]
         },
-        "fallbackOutput": "extra",
-        "options": {}
+        "fallbackOutput": 3
       }
     },
     {
@@ -288,8 +226,6 @@
       "parameters": {
         "method": "GET",
         "url": "=https://graph.facebook.com/v18.0/{{ $json.mediaId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -317,8 +253,6 @@
       "parameters": {
         "method": "GET",
         "url": "=https://graph.facebook.com/v18.0/{{ $json.mediaId }}",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -414,8 +348,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "string",
-        "body": "={\n  \"model\": \"claude-3-5-haiku-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER — Builder 1: paste isi prompts/extraction-system-prompt.md di sini\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.promptInput ?? $json.transcript ?? '') }}\n    }\n  ]\n}",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-3-5-haiku-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER — Builder 1: paste isi prompts/extraction-system-prompt.md di sini\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.promptInput ?? $json.transcript ?? '') }}\n    }\n  ]\n}",
         "options": {
           "response": {
             "response": {
@@ -453,8 +387,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "string",
-        "body": "={\n  \"model\": \"claude-3-5-sonnet-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER — Builder 2: paste vision system prompt dari prompts/vision-system-prompt.md\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image\",\n          \"source\": {\n            \"type\": \"url\",\n            \"url\": \"PLACEHOLDER — Builder 2: isi dengan URL gambar dari Download Image Media\"\n          }\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"Tolong ekstrak semua transaksi dari struk ini.\"\n        }\n      ]\n    }\n  ]\n}",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-3-5-sonnet-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER — Builder 2: paste vision system prompt dari prompts/vision-system-prompt.md\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image\",\n          \"source\": {\n            \"type\": \"url\",\n            \"url\": \"PLACEHOLDER — Builder 2: isi dengan URL gambar dari Download Image Media\"\n          }\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"Tolong ekstrak semua transaksi dari struk ini.\"\n        }\n      ]\n    }\n  ]\n}",
         "options": {
           "response": {
             "response": {
@@ -505,8 +439,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "string",
-        "body": "={\n  \"user_id\":        {{ JSON.stringify($json.user?.id ?? null) }},\n  \"raw_input\":      {{ JSON.stringify($json.textContent ?? $json.transcript ?? '') }},\n  \"input_type\":     {{ JSON.stringify($json.messageType === 'audio' ? 'voice' : ($json.messageType === 'image' ? 'image' : 'text')) }},\n  \"transcript\":     {{ JSON.stringify($json.transcript ?? null) }},\n  \"category\":       {{ JSON.stringify($json.extractedData?.category ?? 'unclear') }},\n  \"nominal\":        {{ $json.extractedData?.nominal ?? 0 }},\n  \"pihak\":          {{ JSON.stringify($json.extractedData?.pihak ?? null) }},\n  \"item\":           {{ JSON.stringify($json.extractedData?.item ?? null) }},\n  \"tanggal\":        {{ JSON.stringify($json.extractedData?.tanggal ?? new Date().toISOString().split('T')[0]) }},\n  \"jatuh_tempo\":    {{ JSON.stringify($json.extractedData?.jatuh_tempo ?? null) }},\n  \"status\":         \"aktif\",\n  \"confidence\":     {{ JSON.stringify($json.extractedData?.confidence ?? 'low') }},\n  \"ai_model_version\": \"claude-3-5-haiku-20241022\"\n}",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"user_id\":        {{ JSON.stringify($json.user?.id ?? null) }},\n  \"raw_input\":      {{ JSON.stringify($json.textContent ?? $json.transcript ?? '') }},\n  \"input_type\":     {{ JSON.stringify($json.messageType === 'audio' ? 'voice' : ($json.messageType === 'image' ? 'image' : 'text')) }},\n  \"transcript\":     {{ JSON.stringify($json.transcript ?? null) }},\n  \"category\":       {{ JSON.stringify($json.extractedData?.category ?? 'unclear') }},\n  \"nominal\":        {{ $json.extractedData?.nominal ?? 0 }},\n  \"pihak\":          {{ JSON.stringify($json.extractedData?.pihak ?? null) }},\n  \"item\":           {{ JSON.stringify($json.extractedData?.item ?? null) }},\n  \"tanggal\":        {{ JSON.stringify($json.extractedData?.tanggal ?? new Date().toISOString().split('T')[0]) }},\n  \"jatuh_tempo\":    {{ JSON.stringify($json.extractedData?.jatuh_tempo ?? null) }},\n  \"status\":         \"aktif\",\n  \"confidence\":     {{ JSON.stringify($json.extractedData?.confidence ?? 'low') }},\n  \"ai_model_version\": \"claude-3-5-haiku-20241022\"\n}",
         "options": {
           "response": {
             "response": {
@@ -539,8 +473,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "string",
-        "body": "={\n  \"sheetId\":     {{ JSON.stringify($json.user?.sheet_id ?? null) }},\n  \"transaction\": {{ JSON.stringify($json.extractedData ?? {}) }}\n}",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"sheetId\":     {{ JSON.stringify($json.user?.sheet_id ?? null) }},\n  \"transaction\": {{ JSON.stringify($json.extractedData ?? {}) }}\n}",
         "options": {
           "response": {
             "response": {
@@ -554,35 +488,11 @@
     {
       "id": "node-18-send-reply",
       "name": "Send WhatsApp Reply",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [3080, 100],
       "parameters": {
-        "method": "POST",
-        "url": "=https://graph.facebook.com/v18.0/{{ $env.WHATSAPP_PHONE_NUMBER_ID }}/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "string",
-        "body": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\":   {{ JSON.stringify($json.senderPhone ?? $json.to) }},\n  \"type\": \"text\",\n  \"text\": {\n    \"body\": {{ JSON.stringify($json.replyText ?? $json.confirmationMessage ?? '✅ Transaksi dicatat!') }}\n  }\n}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
+        "jsCode": "const phone   = $json.senderPhone ?? $json.to ?? '';\nconst message = $json.replyText ?? $json.confirmationMessage ?? 'Transaksi dicatat!';\n\nif (!phone) {\n  return [{ json: { ...($input.first().json), wahaResult: null, error: 'No phone number' } }];\n}\n\nconst result = await this.helpers.httpRequest({\n  method:  'POST',\n  url:     'http://localhost:3000/api/sendText',\n  headers: {\n    'X-Api-Key':    'wariskan123',\n    'Content-Type': 'application/json',\n  },\n  body: {\n    session: 'default',\n    chatId:  `${phone}@c.us`,\n    text:    message,\n  },\n});\n\nreturn [{ json: { ...($input.first().json), wahaResult: result } }];"
       }
     },
     {
@@ -614,8 +524,8 @@
           ]
         },
         "sendBody": true,
-        "specifyBody": "string",
-        "body": "={\n  \"text\": \"🚨 *Wariskan Workflow Error*\",\n  \"attachments\": [{\n    \"color\": \"danger\",\n    \"fields\": [\n      { \"title\": \"Error\",   \"value\": {{ JSON.stringify($json.error?.message ?? $json.message ?? 'Unknown error') }}, \"short\": false },\n      { \"title\": \"Node\",    \"value\": {{ JSON.stringify($runIndex?.toString() ?? 'unknown') }}, \"short\": true },\n      { \"title\": \"Time\",    \"value\": {{ JSON.stringify(new Date().toISOString()) }}, \"short\": true }\n    ]\n  }]\n}",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"text\": \"🚨 *Wariskan Workflow Error*\",\n  \"attachments\": [{\n    \"color\": \"danger\",\n    \"fields\": [\n      { \"title\": \"Error\",   \"value\": {{ JSON.stringify($json.error?.message ?? $json.message ?? 'Unknown error') }}, \"short\": false },\n      { \"title\": \"Node\",    \"value\": {{ JSON.stringify($runIndex?.toString() ?? 'unknown') }}, \"short\": true },\n      { \"title\": \"Time\",    \"value\": {{ JSON.stringify(new Date().toISOString()) }}, \"short\": true }\n    ]\n  }]\n}",
         "options": {
           "response": {
             "response": {

@@ -1,0 +1,21 @@
+# Secrets — jangan pernah commit file ini
+secrets.ps1
+.env
+.env.local
+.env.production
+*.local
+
+# Service account Google
+service-account-key.json
+*.json.key
+
+# Node
+node_modules/
+npm-debug.log*
+
+# n8n local data
+.n8n/
+
+# OS
+.DS_Store
+Thumbs.db
