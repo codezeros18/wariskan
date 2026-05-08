@@ -1,0 +1,424 @@
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @ai-sdk/anthropic@2.0.61
+npm warn Found: zod@3.25.67
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@3.0.20
+npm warn   node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils
+npm warn     @ai-sdk/provider-utils@"3.0.20" from @ai-sdk/anthropic@2.0.61
+npm warn     node_modules/@ai-sdk/anthropic
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/anthropic@2.0.61
+npm warn node_modules/@ai-sdk/anthropic
+npm warn   @ai-sdk/anthropic@"2.0.61" from n8n@2.18.5
+npm warn   node_modules/n8n
+npm warn
+npm warn Conflicting peer dependency: zod@4.4.3
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/anthropic@2.0.61
+npm warn   node_modules/@ai-sdk/anthropic
+npm warn     @ai-sdk/anthropic@"2.0.61" from n8n@2.18.5
+npm warn     node_modules/n8n
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @ai-sdk/google@3.0.68
+npm warn Found: zod@3.25.67
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@3.0.20
+npm warn   node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils
+npm warn     @ai-sdk/provider-utils@"3.0.20" from @ai-sdk/anthropic@2.0.61
+npm warn     node_modules/@ai-sdk/anthropic
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/google@3.0.68
+npm warn node_modules/@ai-sdk/google
+npm warn   @ai-sdk/google@"^3.0.43" from @n8n/agents@0.5.2
+npm warn   node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn
+npm warn Conflicting peer dependency: zod@4.4.3
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/google@3.0.68
+npm warn   node_modules/@ai-sdk/google
+npm warn     @ai-sdk/google@"^3.0.43" from @n8n/agents@0.5.2
+npm warn     node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @ai-sdk/openai@3.0.62
+npm warn Found: zod@3.25.67
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@3.0.20
+npm warn   node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils
+npm warn     @ai-sdk/provider-utils@"3.0.20" from @ai-sdk/anthropic@2.0.61
+npm warn     node_modules/@ai-sdk/anthropic
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/openai@3.0.62
+npm warn node_modules/@ai-sdk/openai
+npm warn   @ai-sdk/openai@"^3.0.41" from @n8n/agents@0.5.2
+npm warn   node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn
+npm warn Conflicting peer dependency: zod@4.4.3
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/openai@3.0.62
+npm warn   node_modules/@ai-sdk/openai
+npm warn     @ai-sdk/openai@"^3.0.41" from @n8n/agents@0.5.2
+npm warn     node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @ai-sdk/xai@3.0.88
+npm warn Found: zod@3.25.67
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@3.0.20
+npm warn   node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils
+npm warn     @ai-sdk/provider-utils@"3.0.20" from @ai-sdk/anthropic@2.0.61
+npm warn     node_modules/@ai-sdk/anthropic
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/xai@3.0.88
+npm warn node_modules/@ai-sdk/xai
+npm warn   @ai-sdk/xai@"^3.0.67" from @n8n/agents@0.5.2
+npm warn   node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn
+npm warn Conflicting peer dependency: zod@4.4.3
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/xai@3.0.88
+npm warn   node_modules/@ai-sdk/xai
+npm warn     @ai-sdk/xai@"^3.0.67" from @n8n/agents@0.5.2
+npm warn     node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: ai@6.0.175
+npm warn Found: zod@3.25.67
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@3.0.20
+npm warn   node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils
+npm warn     @ai-sdk/provider-utils@"3.0.20" from @ai-sdk/anthropic@2.0.61
+npm warn     node_modules/@ai-sdk/anthropic
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer zod@"^3.25.76 || ^4.1.8" from ai@6.0.175
+npm warn node_modules/ai
+npm warn   ai@"^6.0.116" from @n8n/agents@0.5.2
+npm warn   node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn
+npm warn Conflicting peer dependency: zod@4.4.3
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from ai@6.0.175
+npm warn   node_modules/ai
+npm warn     ai@"^6.0.116" from @n8n/agents@0.5.2
+npm warn     node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @ai-sdk/anthropic@3.0.75
+npm warn Found: zod@3.25.67
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@3.0.20
+npm warn   node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils
+npm warn     @ai-sdk/provider-utils@"3.0.20" from @ai-sdk/anthropic@2.0.61
+npm warn     node_modules/@ai-sdk/anthropic
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/anthropic@3.0.75
+npm warn node_modules/@n8n/instance-ai/node_modules/@ai-sdk/anthropic
+npm warn   @ai-sdk/anthropic@"^3.0.58" from @n8n/agents@0.5.2
+npm warn   node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn
+npm warn Conflicting peer dependency: zod@4.4.3
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/anthropic@3.0.75
+npm warn   node_modules/@n8n/instance-ai/node_modules/@ai-sdk/anthropic
+npm warn     @ai-sdk/anthropic@"^3.0.58" from @n8n/agents@0.5.2
+npm warn     node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @ai-sdk/provider-utils@4.0.26
+npm warn Found: zod@3.25.67
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@3.0.20
+npm warn   node_modules/@ai-sdk/anthropic/node_modules/@ai-sdk/provider-utils
+npm warn     @ai-sdk/provider-utils@"3.0.20" from @ai-sdk/anthropic@2.0.61
+npm warn     node_modules/@ai-sdk/anthropic
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@4.0.26
+npm warn node_modules/@n8n/instance-ai/node_modules/@ai-sdk/provider-utils
+npm warn   @ai-sdk/provider-utils@"^4.0.21" from @n8n/agents@0.5.2
+npm warn   node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn   1 more (@ai-sdk/anthropic)
+npm warn
+npm warn Conflicting peer dependency: zod@4.4.3
+npm warn node_modules/zod
+npm warn   peer zod@"^3.25.76 || ^4.1.8" from @ai-sdk/provider-utils@4.0.26
+npm warn   node_modules/@n8n/instance-ai/node_modules/@ai-sdk/provider-utils
+npm warn     @ai-sdk/provider-utils@"^4.0.21" from @n8n/agents@0.5.2
+npm warn     node_modules/@n8n/instance-ai/node_modules/@n8n/agents
+npm warn     1 more (@ai-sdk/anthropic)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @browserbasehq/stagehand@1.14.0
+npm warn Found: openai@6.36.0
+npm warn node_modules/@n8n/n8n-nodes-langchain/node_modules/openai
+npm warn   openai@"^6.9.0" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn   node_modules/@n8n/n8n-nodes-langchain
+npm warn     @n8n/n8n-nodes-langchain@"2.18.4" from n8n@2.18.5
+npm warn     node_modules/n8n
+npm warn   1 more (@langchain/community)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peer openai@"^4.62.1" from @browserbasehq/stagehand@1.14.0
+npm warn node_modules/@n8n/n8n-nodes-langchain/node_modules/@browserbasehq/stagehand
+npm warn   peer @browserbasehq/stagehand@"^1.0.0" from @langchain/community@1.1.14
+npm warn   node_modules/@n8n/n8n-nodes-langchain/node_modules/@langchain/community
+npm warn
+npm warn Conflicting peer dependency: openai@4.104.0
+npm warn node_modules/openai
+npm warn   peer openai@"^4.62.1" from @browserbasehq/stagehand@1.14.0
+npm warn   node_modules/@n8n/n8n-nodes-langchain/node_modules/@browserbasehq/stagehand
+npm warn     peer @browserbasehq/stagehand@"^1.0.0" from @langchain/community@1.1.14
+npm warn     node_modules/@n8n/n8n-nodes-langchain/node_modules/@langchain/community
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @getzep/zep-cloud@1.0.6
+npm warn Found: @langchain/core@1.1.34
+npm warn node_modules/@n8n/n8n-nodes-langchain/node_modules/@langchain/core
+npm warn   @langchain/core@"1.1.34" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn   node_modules/@n8n/n8n-nodes-langchain
+npm warn     @n8n/n8n-nodes-langchain@"2.18.4" from n8n@2.18.5
+npm warn     node_modules/n8n
+npm warn   1 more (@langchain/community)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional @langchain/core@"~0.1.29" from @getzep/zep-cloud@1.0.6
+npm warn node_modules/@n8n/n8n-nodes-langchain/node_modules/@getzep/zep-cloud
+npm warn   @getzep/zep-cloud@"1.0.6" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn   node_modules/@n8n/n8n-nodes-langchain
+npm warn   1 more (@langchain/community)
+npm warn
+npm warn Conflicting peer dependency: @langchain/core@0.1.63
+npm warn node_modules/@langchain/core
+npm warn   peerOptional @langchain/core@"~0.1.29" from @getzep/zep-cloud@1.0.6
+npm warn   node_modules/@n8n/n8n-nodes-langchain/node_modules/@getzep/zep-cloud
+npm warn     @getzep/zep-cloud@"1.0.6" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn     node_modules/@n8n/n8n-nodes-langchain
+npm warn     1 more (@langchain/community)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @getzep/zep-cloud@1.0.6
+npm warn Found: langchain@1.2.30
+npm warn node_modules/langchain
+npm warn   langchain@"1.2.30" from @n8n/ai-utilities@0.12.0
+npm warn   node_modules/@n8n/ai-utilities
+npm warn     @n8n/ai-utilities@"0.12.0" from n8n@2.18.5
+npm warn     node_modules/n8n
+npm warn     2 more (@n8n/ai-node-sdk, @n8n/n8n-nodes-langchain)
+npm warn   3 more (@n8n/ai-workflow-builder, @n8n/n8n-nodes-langchain, @microsoft/agents-a365-tooling-extensions-langchain)
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional langchain@"~0.1.19" from @getzep/zep-cloud@1.0.6
+npm warn node_modules/@n8n/n8n-nodes-langchain/node_modules/@getzep/zep-cloud
+npm warn   @getzep/zep-cloud@"1.0.6" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn   node_modules/@n8n/n8n-nodes-langchain
+npm warn   1 more (@langchain/community)
+npm warn
+npm warn Conflicting peer dependency: langchain@0.1.37
+npm warn node_modules/langchain
+npm warn   peerOptional langchain@"~0.1.19" from @getzep/zep-cloud@1.0.6
+npm warn   node_modules/@n8n/n8n-nodes-langchain/node_modules/@getzep/zep-cloud
+npm warn     @getzep/zep-cloud@"1.0.6" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn     node_modules/@n8n/n8n-nodes-langchain
+npm warn     1 more (@langchain/community)
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @langchain/community@1.1.14
+npm warn Found: @azure/search-documents@12.1.0
+npm warn node_modules/@azure/search-documents
+npm warn   @azure/search-documents@"12.1.0" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn   node_modules/@n8n/n8n-nodes-langchain
+npm warn     @n8n/n8n-nodes-langchain@"2.18.4" from n8n@2.18.5
+npm warn     node_modules/n8n
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional @azure/search-documents@"^12.2.0" from @langchain/community@1.1.14
+npm warn node_modules/@n8n/n8n-nodes-langchain/node_modules/@langchain/community
+npm warn   @langchain/community@"1.1.14" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn   node_modules/@n8n/n8n-nodes-langchain
+npm warn
+npm warn Conflicting peer dependency: @azure/search-documents@12.2.0
+npm warn node_modules/@azure/search-documents
+npm warn   peerOptional @azure/search-documents@"^12.2.0" from @langchain/community@1.1.14
+npm warn   node_modules/@n8n/n8n-nodes-langchain/node_modules/@langchain/community
+npm warn     @langchain/community@"1.1.14" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn     node_modules/@n8n/n8n-nodes-langchain
+npm warn ERESOLVE overriding peer dependency
+npm warn While resolving: @langchain/community@1.1.14
+npm warn Found: @huggingface/inference@4.0.5
+npm warn node_modules/@huggingface/inference
+npm warn   @huggingface/inference@"4.0.5" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn   node_modules/@n8n/n8n-nodes-langchain
+npm warn     @n8n/n8n-nodes-langchain@"2.18.4" from n8n@2.18.5
+npm warn     node_modules/n8n
+npm warn
+npm warn Could not resolve dependency:
+npm warn peerOptional @huggingface/inference@"^4.13.11" from @langchain/community@1.1.14
+npm warn node_modules/@n8n/n8n-nodes-langchain/node_modules/@langchain/community
+npm warn   @langchain/community@"1.1.14" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn   node_modules/@n8n/n8n-nodes-langchain
+npm warn
+npm warn Conflicting peer dependency: @huggingface/inference@4.13.15
+npm warn node_modules/@huggingface/inference
+npm warn   peerOptional @huggingface/inference@"^4.13.11" from @langchain/community@1.1.14
+npm warn   node_modules/@n8n/n8n-nodes-langchain/node_modules/@langchain/community
+npm warn     @langchain/community@"1.1.14" from @n8n/n8n-nodes-langchain@2.18.4
+npm warn     node_modules/@n8n/n8n-nodes-langchain
+npm warn deprecated node-domexception@1.0.0: Use your platform's native DOMException instead
+npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+npm warn deprecated q@1.5.1: You or someone you depend on is using Q, the JavaScript Promise library that gave JavaScript developers strong feelings about promises. They can almost certainly migrate to the native JavaScript promise now. Thank you literally everyone for joining me in this bet against the odds. Be excellent to each other.
+npm warn deprecated
+npm warn deprecated (For a CapTP with native promises, see @endo/eventual-send and @endo/captp)
+npm warn deprecated gauge@4.0.4: This package is no longer supported.
+npm warn deprecated are-we-there-yet@3.0.1: This package is no longer supported.
+npm warn deprecated @npmcli/move-file@1.1.2: This functionality has been moved to @npmcli/fs
+npm warn deprecated npmlog@6.0.2: This package is no longer supported.
+npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated prebuild-install@7.1.3: No longer maintained. Please contact the author of the relevant native addon; alternatives are available.
+npm warn deprecated gm@1.25.1: The gm module has been sunset. Please migrate to an alternative. https://github.com/aheckmann/gm?tab=readme-ov-file#2025-02-24-this-project-is-not-maintained
+npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+npm warn deprecated @aws-sdk/protocol-http@3.374.0: This package has moved to @smithy/protocol-http
+npm warn deprecated @aws-sdk/signature-v4@3.374.0: This package has moved to @smithy/signature-v4
+npm warn deprecated glob@10.5.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated @xata.io/client@0.28.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+npm warn deprecated uuid@10.0.0: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated infisical-node@1.3.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@10.0.0: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated glob@11.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+npm warn deprecated uuid@8.3.2: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+npm warn deprecated uuid@9.0.1: uuid@10 and below is no longer supported.  For ESM codebases, update to uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this version will likely be deprecated in 2028).
+2026-05-07T11:02:40.377Z [Rudder] error: Response error code: ECONNRESET
+(node:22648) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+TypeError: fetch failed
+2026-05-07T12:35:21.773Z [Rudder] error: Response error code: ETIMEDOUT
+TypeError: fetch failed
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+2026-05-07T12:35:43.087Z [Rudder] error: Response error code: ETIMEDOUT
+TypeError: fetch failed
+2026-05-07T12:36:04.556Z [Rudder] error: Response error code: ETIMEDOUT
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at processTimers (node:internal/timers:538:9) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at processTimers (node:internal/timers:541:7) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at processTimers (node:internal/timers:538:9) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+Error fetching feature flags Error [PostHogFetchNetworkError]: Network error while fetching PostHog
+    at new PostHogFetchNetworkError (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:41:5)
+    at PostHog.<anonymous> (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\posthog-core\src\index.ts:546:17)
+    at step (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:102:23)
+    at Object.throw (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:83:53)
+    at rejected (D:\wariskan\wariskan\.npm-cache\_npx\b3d96a15da96854a\node_modules\node_modules\tslib\tslib.es6.js:74:65)
+    at runNextTicks (node:internal/process/task_queues:65:5)
+    at processTimers (node:internal/timers:538:9) {
+  error: [DOMException [TimeoutError]: The operation was aborted due to timeout],
+  [cause]: [DOMException [TimeoutError]: The operation was aborted due to timeout]
+}
+2026-05-07T12:36:27.825Z [Rudder] error: Error: ETIMEDOUT
+2026-05-07T12:36:48.876Z [Rudder] error: Response error code: ETIMEDOUT
+2026-05-07T12:37:22.191Z [Rudder] error: Response error code: ETIMEDOUT
+2026-05-07T12:37:43.670Z [Rudder] error: Response error code: ETIMEDOUT
+2026-05-07T12:38:05.620Z [Rudder] error: Error: ETIMEDOUT

@@ -19,11 +19,21 @@ $env:META_APP_SECRET = "your_meta_app_secret"
 # ── AI APIs ───────────────────────────────────────────────────
 $env:ANTHROPIC_API_KEY = "sk-ant-api03-..."
 $env:OPENAI_API_KEY    = "sk-proj-..."
+$env:OPENAI_TRANSCRIBE_MODEL = "gpt-4o-mini-transcribe"
+
+# ── Google Sheets helper API ─────────────────────────────────
+$env:HELPER_API_URL = "http://localhost:3001"
+$env:HELPER_API_KEY = "dev"
+$env:GOOGLE_MASTER_SHEET_ID = "YOUR_MASTER_SPREADSHEET_ID"
 
 # ── WaHA (kalau pakai WaHA) ───────────────────────────────────
 # WaHA jalan di Docker port 3000, API key diset saat docker run
-# Tidak perlu env var khusus, sudah hardcode di workflow
+$env:WHATSAPP_PROVIDER = "waha"
+$env:WAHA_BASE_URL = "http://localhost:3000"
+$env:WAHA_API_KEY = "wariskan123"
+$env:WAHA_SESSION = "default"
+$env:WAHA_OWNER_CHAT_ID = "6281284818862@c.us"
 
 # ── Scheduler ─────────────────────────────────────────────────
-$env:SCHEDULER_BASE_URL = "http://localhost:3000"
+$env:SCHEDULER_BASE_URL = "http://localhost:3001"
 $env:SCHEDULER_API_KEY  = "dev"

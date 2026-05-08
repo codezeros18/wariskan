@@ -4,11 +4,12 @@
   "description": "WhatsApp AI bookkeeper for Indonesian warung owners",
   "type": "module",
   "engines": {
-    "node": ">=22.16.0"
+    "node": ">=20.0.0"
   },
   "scripts": {
     "start": "npx n8n@2.18.5 start",
     "scheduler":        "node helpers/scheduler.js",
+    "sheets-api":       "node helpers/sheetsApiServer.js",
     "test-sheets":      "node tests/test-sheets.js",
     "test-scheduler":   "node tests/test-scheduler.js",
     "verify-env":       "node tests/verify-env.js"

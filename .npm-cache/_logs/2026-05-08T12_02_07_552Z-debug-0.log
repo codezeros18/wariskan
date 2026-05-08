@@ -1,0 +1,22 @@
+0 verbose cli C:\Program Files\nodejs\node.exe C:\Users\MSI\AppData\Roaming\npm\node_modules\npm\bin\npm-cli.js
+1 info using npm@11.1.0
+2 info using node@v24.15.0
+3 silly config load:file:C:\Users\MSI\AppData\Roaming\npm\node_modules\npm\npmrc
+4 silly config load:file:D:\wariskan\wariskan\.npmrc
+5 silly config load:file:C:\Users\MSI\.npmrc
+6 silly config load:file:C:\Users\MSI\AppData\Roaming\npm\etc\npmrc
+7 verbose title npm exec n8n@2.18.5 start
+8 verbose argv "exec" "--yes" "--" "n8n@2.18.5" "start"
+9 verbose logfile logs-max:10 dir:D:\wariskan\wariskan\.npm-cache\_logs\2026-05-08T12_02_07_552Z-
+10 verbose logfile D:\wariskan\wariskan\.npm-cache\_logs\2026-05-08T12_02_07_552Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+13 http fetch GET 200 https://registry.npmjs.org/n8n 5568ms (cache revalidated)
+14 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+15 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+16 verbose cwd D:\wariskan\wariskan
+17 verbose os Windows_NT 10.0.26200
+18 verbose node v24.15.0
+19 verbose npm  v11.1.0
+20 verbose exit 0
+21 info ok

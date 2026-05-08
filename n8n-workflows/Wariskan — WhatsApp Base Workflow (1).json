@@ -1,5 +1,5 @@
 {
-    "name":  "Wariskan â€” WhatsApp Base Workflow",
+    "name":  "Wariskan WhatsApp Base Workflow",
     "pinData":  {
 
                 },
@@ -364,13 +364,13 @@
     "nodes":  [
                   {
                       "parameters":  {
-                                         "content":  "## ðŸ¤– Wariskan â€” WhatsApp AI Bookkeeper | Base Workflow\n\n**Builder 3 (PM/Infra):** Setup credentials (Supabase Postgres, Anthropic, OpenAI, WhatsApp) + env vars + aktifkan webhook di Meta Developer Console.\n**Builder 1:** Implement node **Claude Extract** â€” paste system prompt dari `prompts/extraction-system-prompt.md`, parse JSON response, connect ke Validate JSON.\n**Builder 2:** Implement **Whisper STT** + **Claude Vision** â€” handle download audio/image dari WA Media API, kirim ke OpenAI/Anthropic, connect ke Validate JSON.\n\nðŸŸ¡ Kuning = Parsing \u0026 User | ðŸŸ£ Ungu = Routing | ðŸ”´ Merah = AI (Builder 1 \u0026 2) | ðŸŸ¢ Hijau = Storage \u0026 Reply | ðŸ”µ Biru = Verification",
+                                         "content":  "## Wariskan WhatsApp AI Bookkeeper\n\nBase workflow for Meta WhatsApp Cloud API.\n\nFlow:\n1. Verify Meta webhook\n2. Receive WhatsApp messages\n3. Parse user and message data\n4. Extract transaction with Claude\n5. Save transaction to Supabase\n6. Send confirmation reply through WhatsApp Cloud API\n\nRequired env vars:\nSUPABASE_URL, SUPABASE_SERVICE_KEY, WHATSAPP_TOKEN, WHATSAPP_PHONE_NUMBER_ID, WHATSAPP_VERIFY_TOKEN, ANTHROPIC_API_KEY",
                                          "height":  180,
                                          "width":  3000,
                                          "color":  4
                                      },
                       "id":  "7d748cee-0ee3-43be-ae9f-00deda82f5b6",
-                      "name":  "ðŸ“‹ Overview",
+                      "name":  "Overview",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -380,13 +380,13 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "## âœ… Meta Webhook Verification (GET)\n\nMeta kirim GET ke URL webhook saat pertama kali dikonfigurasi.\nWorkflow ini cek `hub.verify_token` dan balas dengan `hub.challenge`.\n\n**Env var yang dibutuhkan:**\n`WHATSAPP_VERIFY_TOKEN` = token yang kamu set di Meta Developer Console\n\n**Setup:** Webhook â†’ Meta App â†’ WhatsApp â†’ Configuration â†’ Callback URL",
+                                         "content":  "## Meta Webhook Verification\n\nMeta sends a GET request when you configure the webhook.\nThis section checks hub.verify_token and responds with hub.challenge.\n\nMeta Configuration:\nCallback URL: https://your-railway-domain/webhook/whatsapp-webhook\nVerify token: wariskan_webhook_verify_2026",
                                          "height":  280,
                                          "width":  720,
                                          "color":  3
                                      },
                       "id":  "e852af1c-f462-4c60-9f6f-8e414737265c",
-                      "name":  "ðŸ“ Verification Section",
+                      "name":  "Verification Section",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -396,12 +396,12 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "## ðŸ“¨ Message Ingestion \u0026 User Management\n\n1. **Parse Payload** â†’ ekstrak sender, messageId, type, content\n2. **Get or Create User** â†’ lookup by phone di Supabase, buat baru jika belum ada\n3. **Log Incoming Message** â†’ simpan raw payload (idempotent via wamid UNIQUE)\n\nâš ï¸ `rawPayload` disimpan untuk debugging.\nJangan hapus `incoming_messages` records saat testing.\n\n**Env vars:** `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`",
+                                         "content":  "## Message Ingestion and User Management\n\n1. Parse incoming WhatsApp payload\n2. Find or create user in Supabase\n3. Log incoming message\n4. Route by message type\n\nStatus updates from Meta are ignored.",
                                          "height":  280,
                                          "width":  720
                                      },
                       "id":  "74a703db-2a28-4c27-b203-06f5c79c8ce7",
-                      "name":  "ðŸ“¨ Parse \u0026 User Section",
+                      "name":  "Parse and User Section",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -411,13 +411,13 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "## ðŸ¤– AI Processing â€” IMPLEMENT HERE (Builder 1 \u0026 2)\n\n**Claude Extract (text/audio):** POST â†’ Anthropic API\n- Paste system prompt dari `prompts/extraction-system-prompt.md`\n- Parse `$json.content[0].text` sebagai JSON\n- Env: `ANTHROPIC_API_KEY`\n\n**Whisper STT (audio):** POST â†’ OpenAI `/v1/audio/transcriptions`\n- Kirim audio blob dari Download Media, terima transcript\n- Env: `OPENAI_API_KEY`\n\n**Claude Vision (image):** POST â†’ Anthropic API dengan image_url\n- Model: claude-3-5-sonnet-20241022",
+                                         "content":  "## AI Processing\n\nText messages go to Claude Extract.\nAudio and image paths are placeholders for Whisper and Vision.\n\nFor the current Meta text demo, the text path is the primary path.",
                                          "height":  280,
                                          "width":  760,
                                          "color":  2
                                      },
                       "id":  "eda0c15a-ab6f-4122-8972-73bf5b3b2385",
-                      "name":  "ðŸ¤– AI Processing Section",
+                      "name":  "AI Processing Section",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -427,13 +427,13 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "## ðŸ’¾ Storage \u0026 WhatsApp Reply\n\n1. **Validate JSON** â†’ cek output Claude punya field wajib (category, nominal)\n2. **Save to Supabase** â†’ POST `/rest/v1/transactions`\n3. **Save to Google Sheets** â†’ call `appendTransaction()` via HTTP ke helper\n4. **Send WhatsApp Reply** â†’ kirim konfirmasi ke user\n\n**Env vars:** `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`\n\nðŸ’¡ Builder 1: connect Validate JSON â†’ Save Supabase setelah Claude Extract ready",
+                                         "content":  "## Storage and WhatsApp Reply\n\n1. Validate Claude JSON\n2. Save transaction to Supabase\n3. Google Sheets is currently bypassed\n4. Build reply message\n5. Send WhatsApp reply through Meta Graph API",
                                          "height":  280,
                                          "width":  740,
                                          "color":  3
                                      },
                       "id":  "639fbca5-a037-4dde-9ac6-41ff3a164f66",
-                      "name":  "ðŸ’¾ Storage \u0026 Reply Section",
+                      "name":  "Storage and Reply Section",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -443,13 +443,13 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "## ðŸš¨ Error Notification (Placeholder)\n\nConnect node-node penting ke **Send Error Notification**:\n- Get or Create User â†’ error output\n- Claude Extract â†’ error output\n- Save to Supabase â†’ error output\n\nDi n8n: Settings â†’ Error Workflow â†’ pilih workflow ini.\nAtau set `SLACK_ERROR_WEBHOOK` dan connect manual.",
+                                         "content":  "## Error Notification Placeholder\n\nOptional Slack error notification node.\nThis is not required for webhook verification or WhatsApp reply testing.",
                                          "height":  180,
                                          "width":  480,
                                          "color":  2
                                      },
                       "id":  "89528042-461b-43d7-8405-786b5bd80bed",
-                      "name":  "ðŸš¨ Error Handling",
+                      "name":  "Error Handling",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -553,7 +553,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "// Extract message data from WhatsApp Cloud API webhook payload\nconst body = $input.first().json.body;\n\nif (!body?.entry?.length) {\n  // Could be a webhook test ping from Meta\n  return [{ json: { _skip: true, reason: \u0027Empty or invalid payload â€” possible Meta test ping\u0027 } }];\n}\n\nconst value   = body.entry[0]?.changes?.[0]?.value;\nconst message = value?.messages?.[0];\nconst contact = value?.contacts?.[0];\n\nif (!message) {\n  // Status update (read receipts, delivery confirmations) â€” not an error\n  return [{ json: { _skip: true, reason: \u0027Status update, no message to process\u0027 } }];\n}\n\nconst messageType = message.type; // text | audio | image | document | sticker | video\n\nreturn [{\n  json: {\n    senderPhone:   message.from,\n    messageId:     message.id,\n    messageType,\n    timestamp:     new Date(parseInt(message.timestamp, 10) * 1000).toISOString(),\n    textContent:   message.text?.body     ?? null,\n    mediaId:       message.audio?.id ?? message.image?.id ?? message.document?.id ?? null,\n    mediaMimeType: message.audio?.mime_type ?? message.image?.mime_type ?? null,\n    senderName:    contact?.profile?.name ?? null,\n    waPhoneId:     value?.metadata?.phone_number_id ?? null,\n    rawPayload:    JSON.stringify(body),\n    _skip:         false,\n  }\n}];"
+                                         "jsCode":  "// Extract message data from WhatsApp Cloud API webhook payload.\n// Meta also sends status updates for outbound messages; those are not user messages.\nconst body = $input.first().json.body;\n\nif (!body?.entry?.length) {\n  console.log(\u0027[Meta Webhook] Empty or invalid payload; skipping.\u0027);\n  return [];\n}\n\nconst value = body.entry[0]?.changes?.[0]?.value;\nconst message = value?.messages?.[0];\nconst contact = value?.contacts?.[0];\n\nif (!message) {\n  const status = value?.statuses?.[0];\n  console.log(\u0027[Meta Webhook] Status update, no message to process:\u0027, status?.status ?? \u0027unknown\u0027);\n  return [];\n}\n\nconst messageType = message.type;\n\nreturn [{\n  json: {\n    senderPhone: message.from,\n    messageId: message.id,\n    messageType,\n    timestamp: new Date(parseInt(message.timestamp, 10) * 1000).toISOString(),\n    textContent: message.text?.body ?? null,\n    mediaId: message.audio?.id ?? message.image?.id ?? message.document?.id ?? null,\n    mediaMimeType: message.audio?.mime_type ?? message.image?.mime_type ?? null,\n    senderName: contact?.profile?.name ?? null,\n    waPhoneId: value?.metadata?.phone_number_id ?? null,\n    rawPayload: JSON.stringify(body),\n    _skip: false,\n  }\n}];"
                                      },
                       "id":  "78607a90-1e48-43cc-9efe-32517954e432",
                       "name":  "Parse WhatsApp Payload",
@@ -566,7 +566,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "if ($json._skip) return [$input.first()];\n\nconst fetch = async (url, opts = {}) =\u003e {\n  const { method = \u0027GET\u0027, headers = {}, body } = opts;\n  const resp = await this.helpers.httpRequest({ method, url, headers,\n    body: body ? JSON.parse(body) : undefined });\n  return { ok: true, json: () =\u003e Promise.resolve(resp) };\n};\n\nconst { senderPhone, senderName, _skip } = $input.first().json;\n\n// Pass-through for status updates and pings\nif (_skip) return [$input.first()];\n\nconst BASE  = $env.SUPABASE_URL;\nconst KEY   = $env.SUPABASE_SERVICE_KEY;\nconst hdrs  = {\n  \u0027apikey\u0027:        KEY,\n  \u0027Authorization\u0027: `Bearer ${KEY}`,\n  \u0027Content-Type\u0027:  \u0027application/json\u0027,\n};\n\n// â”€â”€ 1. Lookup existing user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€\nconst lookupRes = await fetch(\n  `${BASE}/rest/v1/users?whatsapp_phone=eq.${encodeURIComponent(senderPhone)}\u0026select=id,whatsapp_phone,display_name,sheet_id,sheet_url`,\n  { headers: hdrs }\n);\nconst existing = await lookupRes.json();\n\nlet user;\nlet isNew = false;\n\nif (existing?.length \u003e 0) {\n  user = existing[0];\n} else {\n  // â”€â”€ 2. Create new user â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€\n  const createRes = await fetch(`${BASE}/rest/v1/users`, {\n    method:  \u0027POST\u0027,\n    headers: { ...hdrs, \u0027Prefer\u0027: \u0027return=representation\u0027 },\n    body:    JSON.stringify({\n      whatsapp_phone: senderPhone,\n      display_name:   senderName ?? senderPhone,\n    }),\n  });\n  const created = await createRes.json();\n  user  = created[0];\n  isNew = true;\n  // TODO (Builder 3): call createUserSheet() here when sheet helper API is live\n  // then PATCH user.sheet_id + user.sheet_url back to Supabase\n}\n\n// â”€â”€ 3. Update last_active_at (non-critical, swallow errors) â”€â”€\ntry {\n  await fetch(`${BASE}/rest/v1/users?id=eq.${user.id}`, {\n    method:  \u0027PATCH\u0027,\n    headers: hdrs,\n    body:    JSON.stringify({ last_active_at: new Date().toISOString() }),\n  });\n} catch (_) { /* intentionally ignored */ }\n\nreturn [{ json: { ...($input.first().json), user: { ...user, isNew } } }];"
+                                         "jsCode":  "if ($json._skip) return [$input.first()];\n\nconst fetch = async (url, opts = {}) =\u003e {\n  const { method = \u0027GET\u0027, headers = {}, body } = opts;\n  const resp = await this.helpers.httpRequest({ method, url, headers,\n    body: body ? JSON.parse(body) : undefined });\n  return { ok: true, json: () =\u003e Promise.resolve(resp) };\n};\n\nconst { senderPhone, senderName, _skip } = $input.first().json;\n\n// Pass-through for status updates and pings\nif (_skip) return [$input.first()];\n\nconst BASE  = $env.SUPABASE_URL;\nconst KEY   = $env.SUPABASE_SERVICE_KEY;\nconst hdrs  = {\n  \u0027apikey\u0027:        KEY,\n  \u0027Authorization\u0027: `Bearer ${KEY}`,\n  \u0027Content-Type\u0027:  \u0027application/json\u0027,\n};\n\n// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ 1. Lookup existing user ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬\nconst lookupRes = await fetch(\n  `${BASE}/rest/v1/users?whatsapp_phone=eq.${encodeURIComponent(senderPhone)}\u0026select=id,whatsapp_phone,display_name,sheet_id,sheet_url`,\n  { headers: hdrs }\n);\nconst existing = await lookupRes.json();\n\nlet user;\nlet isNew = false;\n\nif (existing?.length \u003e 0) {\n  user = existing[0];\n} else {\n  // ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ 2. Create new user ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬\n  const createRes = await fetch(`${BASE}/rest/v1/users`, {\n    method:  \u0027POST\u0027,\n    headers: { ...hdrs, \u0027Prefer\u0027: \u0027return=representation\u0027 },\n    body:    JSON.stringify({\n      whatsapp_phone: senderPhone,\n      display_name:   senderName ?? senderPhone,\n    }),\n  });\n  const created = await createRes.json();\n  user  = created[0];\n  isNew = true;\n  // TODO (Builder 3): call createUserSheet() here when sheet helper API is live\n  // then PATCH user.sheet_id + user.sheet_url back to Supabase\n}\n\n// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ 3. Update last_active_at (non-critical, swallow errors) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬\ntry {\n  await fetch(`${BASE}/rest/v1/users?id=eq.${user.id}`, {\n    method:  \u0027PATCH\u0027,\n    headers: hdrs,\n    body:    JSON.stringify({ last_active_at: new Date().toISOString() }),\n  });\n} catch (_) { /* intentionally ignored */ }\n\nreturn [{ json: { ...($input.first().json), user: { ...user, isNew } } }];"
                                      },
                       "id":  "8b090161-7529-48dc-af92-72aad75ca87c",
                       "name":  "Get or Create User",
@@ -579,7 +579,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "// Log incoming WhatsApp message to Supabase REST API.\n// Uses fetch (no credential needed) â€” consistent with all other helpers.\n// Fails silently: logging must never block message processing.\nconst fetch = async (url, opts = {}) =\u003e {\n  const { method = \u0027GET\u0027, headers = {}, body } = opts;\n  const resp = await this.helpers.httpRequest({ method, url, headers,\n    body: body ? JSON.parse(body) : undefined });\n  return { ok: true, json: () =\u003e Promise.resolve(resp) };\n};\n\nconst SB_URL = $env.SUPABASE_URL ?? \u0027\u0027;\nconst SB_KEY = $env.SUPABASE_SERVICE_KEY ?? \u0027\u0027;\nconst item   = $input.first().json;\n\nif (SB_URL \u0026\u0026 SB_KEY) {\n  try {\n    await fetch(`${SB_URL}/rest/v1/incoming_messages`, {\n      method: \u0027POST\u0027,\n      headers: {\n        \u0027apikey\u0027:         SB_KEY,\n        \u0027Authorization\u0027:  `Bearer ${SB_KEY}`,\n        \u0027Content-Type\u0027:   \u0027application/json\u0027,\n        \u0027Prefer\u0027:         \u0027return=minimal\u0027,\n      },\n      body: JSON.stringify({\n        user_id:             item.user?.id ?? null,\n        whatsapp_message_id: item.messageId,\n        phone_from:          item.phone,\n        message_type:        item.messageType,\n        raw_text:            (item.text ?? \u0027\u0027).slice(0, 2000) || null,\n        payload:             item.rawPayload,\n        status:              \u0027received\u0027,\n        processed:           false,\n      }),\n    });\n  } catch (err) {\n    console.error(\u0027[Log Incoming] Failed:\u0027, err.message);\n  }\n}\n\nreturn $input.all();"
+                                         "jsCode":  "// Log incoming WhatsApp message to Supabase REST API.\n// Uses fetch (no credential needed) ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â consistent with all other helpers.\n// Fails silently: logging must never block message processing.\nconst fetch = async (url, opts = {}) =\u003e {\n  const { method = \u0027GET\u0027, headers = {}, body } = opts;\n  const resp = await this.helpers.httpRequest({ method, url, headers,\n    body: body ? JSON.parse(body) : undefined });\n  return { ok: true, json: () =\u003e Promise.resolve(resp) };\n};\n\nconst SB_URL = $env.SUPABASE_URL ?? \u0027\u0027;\nconst SB_KEY = $env.SUPABASE_SERVICE_KEY ?? \u0027\u0027;\nconst item   = $input.first().json;\n\nif (SB_URL \u0026\u0026 SB_KEY) {\n  try {\n    await fetch(`${SB_URL}/rest/v1/incoming_messages`, {\n      method: \u0027POST\u0027,\n      headers: {\n        \u0027apikey\u0027:         SB_KEY,\n        \u0027Authorization\u0027:  `Bearer ${SB_KEY}`,\n        \u0027Content-Type\u0027:   \u0027application/json\u0027,\n        \u0027Prefer\u0027:         \u0027return=minimal\u0027,\n      },\n      body: JSON.stringify({\n        user_id:             item.user?.id ?? null,\n        whatsapp_message_id: item.messageId,\n        phone_from:          item.phone,\n        message_type:        item.messageType,\n        raw_text:            (item.text ?? \u0027\u0027).slice(0, 2000) || null,\n        payload:             item.rawPayload,\n        status:              \u0027received\u0027,\n        processed:           false,\n      }),\n    });\n  } catch (err) {\n    console.error(\u0027[Log Incoming] Failed:\u0027, err.message);\n  }\n}\n\nreturn $input.all();"
                                      },
                       "id":  "238876c3-b7b5-482e-9c10-6eb57e3510cf",
                       "name":  "Log Incoming Message",
@@ -677,7 +677,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "const { senderPhone, messageType } = $input.first().json;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    to:        senderPhone,\n    replyText: `Maaf kak, saya belum bisa baca pesan ${messageType ?? \u0027jenis ini\u0027} ðŸ™\\n\\nSilakan kirim:\\nðŸ“ Pesan teks (contoh: \"jual 350rb\")\\nðŸŽ¤ Pesan suara\\nðŸ“· Foto struk/nota`,\n  }\n}];"
+                                         "jsCode":  "const { senderPhone, messageType } = $input.first().json;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    to: senderPhone,\n    replyText: `Maaf kak, saya belum bisa baca pesan ${messageType ?? \u0027jenis ini\u0027}.\n\nSilakan kirim pesan teks, contoh: \"jual ayam 50rb\" atau \"beli gula 25rb\".`,\n  }\n}];"
                                      },
                       "id":  "151e699e-f4ba-4fb0-ad95-ecf27570a106",
                       "name":  "Send Unsupported Reply",
@@ -798,7 +798,7 @@
                                                               },
                                          "sendBody":  true,
                                          "specifyBody":  "json",
-                                         "jsonBody":  "={\n  \"model\": \"claude-3-5-sonnet-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER â€” Builder 2: paste vision system prompt dari prompts/vision-system-prompt.md\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image\",\n          \"source\": {\n            \"type\": \"url\",\n            \"url\": \"PLACEHOLDER â€” Builder 2: isi dengan URL gambar dari Download Image Media\"\n          }\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"Tolong ekstrak semua transaksi dari struk ini.\"\n        }\n      ]\n    }\n  ]\n}",
+                                         "jsonBody":  "={\n  \"model\": \"claude-3-5-sonnet-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Builder 2: paste vision system prompt dari prompts/vision-system-prompt.md\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image\",\n          \"source\": {\n            \"type\": \"url\",\n            \"url\": \"PLACEHOLDER ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â Builder 2: isi dengan URL gambar dari Download Image Media\"\n          }\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"Tolong ekstrak semua transaksi dari struk ini.\"\n        }\n      ]\n    }\n  ]\n}",
                                          "options":  {
                                                          "response":  {
                                                                           "response":  {
@@ -876,7 +876,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "const supabaseData = $input.first().json;\nconst data = $(\u0027Validate JSON\u0027).item.json;\nconst ext  = data.extractedData;\n\nif (!ext || !data._valid) {\n  return [{ json: { ...supabaseData, ...data, replyText: `Maaf kak, saya kurang paham maksudnya ðŸ™\\nBisa dijelaskan lebih detail?\\nContoh: \"jual 350rb\" atau \"beli gula 25rb\"` } }];\n}\n\nconst nominal = Number(ext.nominal ?? 0).toLocaleString(\u0027id-ID\u0027);\n\nconst messages = {\n  pemasukan:      `âœ… Dicatat! Pemasukan Rp ${nominal}${ext.item ? ` (${ext.item})` : \u0027\u0027} sudah masuk ke buku ya kak ðŸ“’`,\n  pengeluaran:    `âœ… Dicatat! Pengeluaran Rp ${nominal}${ext.item ? ` untuk ${ext.item}` : \u0027\u0027} sudah masuk ke buku ðŸ“’`,\n  hutang:         `âœ… Dicatat! Hutang Rp ${nominal}${ext.pihak ? ` ke ${ext.pihak}` : \u0027\u0027}${ext.jatuh_tempo ? ` (jatuh tempo: ${ext.jatuh_tempo})` : \u0027\u0027} sudah masuk ðŸ“’`,\n  piutang:        `âœ… Dicatat! Piutang Rp ${nominal}${ext.pihak ? ` dari ${ext.pihak}` : \u0027\u0027}${ext.jatuh_tempo ? ` (jatuh tempo: ${ext.jatuh_tempo})` : \u0027\u0027} sudah masuk ðŸ“’`,\n  bayar_hutang:   `âœ… Dicatat! Bayar hutang Rp ${nominal}${ext.pihak ? ` ke ${ext.pihak}` : \u0027\u0027} sudah masuk ðŸ“’`,\n  terima_piutang: `âœ… Dicatat! Terima piutang Rp ${nominal}${ext.pihak ? ` dari ${ext.pihak}` : \u0027\u0027} sudah masuk ðŸ“’`,\n  unclear:        `ðŸ¤” Hmm, saya kurang yakin nih kak. Ini pemasukan atau pengeluaran?\\nNominalnya Rp ${nominal}${ext.pihak ? ` (${ext.pihak})` : \u0027\u0027}.`,\n};\n\nconst replyText = messages[ext.category] ?? messages.unclear;\n\nreturn [{ json: { ...supabaseData, ...data, replyText, to: data.senderPhone } }];"
+                                         "jsCode":  "const supabaseData = $input.first().json;\nconst data = $(\u0027Validate JSON\u0027).item.json;\nconst ext = data.extractedData;\n\nif (!ext || !data._valid) {\n  return [{\n    json: {\n      ...supabaseData,\n      ...data,\n      replyText: \u0027Maaf kak, saya kurang paham maksudnya. Bisa tulis seperti: \"jual ayam 50rb\" atau \"beli gula 25rb\"?\u0027\n    }\n  }];\n}\n\nconst nominal = Number(ext.nominal ?? 0).toLocaleString(\u0027id-ID\u0027);\n\nconst messages = {\n  pemasukan: `Dicatat! Pemasukan Rp ${nominal}${ext.item ? ` (${ext.item})` : \u0027\u0027} sudah masuk ke buku ya kak.`,\n  pengeluaran: `Dicatat! Pengeluaran Rp ${nominal}${ext.item ? ` untuk ${ext.item}` : \u0027\u0027} sudah masuk ke buku.`,\n  hutang: `Dicatat! Hutang Rp ${nominal}${ext.pihak ? ` ke ${ext.pihak}` : \u0027\u0027}${ext.jatuh_tempo ? `, jatuh tempo: ${ext.jatuh_tempo}` : \u0027\u0027} sudah masuk.`,\n  piutang: `Dicatat! Piutang Rp ${nominal}${ext.pihak ? ` dari ${ext.pihak}` : \u0027\u0027}${ext.jatuh_tempo ? `, jatuh tempo: ${ext.jatuh_tempo}` : \u0027\u0027} sudah masuk.`,\n  bayar_hutang: `Dicatat! Bayar hutang Rp ${nominal}${ext.pihak ? ` ke ${ext.pihak}` : \u0027\u0027} sudah masuk.`,\n  terima_piutang: `Dicatat! Terima piutang Rp ${nominal}${ext.pihak ? ` dari ${ext.pihak}` : \u0027\u0027} sudah masuk.`,\n  unclear: `Saya kurang yakin ini pemasukan atau pengeluaran. Nominalnya Rp ${nominal}${ext.pihak ? ` (${ext.pihak})` : \u0027\u0027}.`,\n};\n\nconst replyText = messages[ext.category] ?? messages.unclear;\n\nreturn [{ json: { ...supabaseData, ...data, replyText, to: data.senderPhone } }];"
                                      },
                       "id":  "25d4bd95-12ba-4d72-bfaa-b64ccc9750b6",
                       "name":  "Build Reply Message",
@@ -902,7 +902,7 @@
                                                               },
                                          "sendBody":  true,
                                          "specifyBody":  "json",
-                                         "jsonBody":  "={\n  \"text\": \"ðŸš¨ *Wariskan Workflow Error*\",\n  \"attachments\": [{\n    \"color\": \"danger\",\n    \"fields\": [\n      { \"title\": \"Error\",   \"value\": {{ JSON.stringify($json.error?.message ?? $json.message ?? \u0027Unknown error\u0027) }}, \"short\": false },\n      { \"title\": \"Node\",    \"value\": {{ JSON.stringify($runIndex?.toString() ?? \u0027unknown\u0027) }}, \"short\": true },\n      { \"title\": \"Time\",    \"value\": {{ JSON.stringify(new Date().toISOString()) }}, \"short\": true }\n    ]\n  }]\n}",
+                                         "jsonBody":  "={\n  \"text\": \"ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€¦Ã‚Â¡Ãƒâ€šÃ‚Â¨ *Wariskan Workflow Error*\",\n  \"attachments\": [{\n    \"color\": \"danger\",\n    \"fields\": [\n      { \"title\": \"Error\",   \"value\": {{ JSON.stringify($json.error?.message ?? $json.message ?? \u0027Unknown error\u0027) }}, \"short\": false },\n      { \"title\": \"Node\",    \"value\": {{ JSON.stringify($runIndex?.toString() ?? \u0027unknown\u0027) }}, \"short\": true },\n      { \"title\": \"Time\",    \"value\": {{ JSON.stringify(new Date().toISOString()) }}, \"short\": true }\n    ]\n  }]\n}",
                                          "options":  {
                                                          "response":  {
                                                                           "response":  {
@@ -1024,7 +1024,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "const res = $input.first().json;\nconst body = res.body ?? res;\n\nconsole.log(\u0027[Wariskan Cron] debt-reminder result:\u0027);\nconsole.log(JSON.stringify(body, null, 2));\n\nif (!body.success) {\n  console.warn(\u0027[Wariskan Cron] debt-reminder reported failure â€” check scheduler logs\u0027);\n}\n\nconst summary = {\n  date: new Date().toISOString(),\n  remindersSent: body.processedCount ?? 0,\n  skipped: body.skippedCount ?? 0,\n  errors: body.errors?.length ?? 0,\n  durationMs: body.durationMs ?? null,\n};\n\nconsole.log(\u0027[Wariskan Cron] Daily reminder run complete:\u0027, JSON.stringify(summary));\nreturn [{ json: summary }];"
+                                         "jsCode":  "const res = $input.first().json;\nconst body = res.body ?? res;\n\nconsole.log(\u0027[Wariskan Cron] debt-reminder result:\u0027);\nconsole.log(JSON.stringify(body, null, 2));\n\nif (!body.success) {\n  console.warn(\u0027[Wariskan Cron] debt-reminder reported failure ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â check scheduler logs\u0027);\n}\n\nconst summary = {\n  date: new Date().toISOString(),\n  remindersSent: body.processedCount ?? 0,\n  skipped: body.skippedCount ?? 0,\n  errors: body.errors?.length ?? 0,\n  durationMs: body.durationMs ?? null,\n};\n\nconsole.log(\u0027[Wariskan Cron] Daily reminder run complete:\u0027, JSON.stringify(summary));\nreturn [{ json: summary }];"
                                      },
                       "id":  "34c9ad05-662c-4230-a3ce-bf9262a15f06",
                       "name":  "Log Reminder Result",
@@ -1037,12 +1037,12 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "## ðŸ“… Wariskan â€” Daily Reminder Cron\n\nRuns every day at **09:00 WIB** (02:00 UTC).\n\n**Flow:**\n1. Create reminder rows for debts due tomorrow / today / overdue\n2. Send WhatsApp reminders for all pending rows\n\n**Env vars needed:**\n- `SCHEDULER_BASE_URL` â€” e.g. `http://localhost:3001`\n- `SCHEDULER_API_KEY` â€” optional, set in scheduler.js",
+                                         "content":  "## Daily Reminder Cron\n\nRuns daily reminder jobs through the scheduler endpoint.\nThis is optional for the WhatsApp text demo.",
                                          "height":  200,
                                          "width":  360
                                      },
                       "id":  "1e77e74f-0483-4c52-8a3a-460c85857302",
-                      "name":  "Sticky Note",
+                      "name":  "Daily Reminder Notes",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -1071,7 +1071,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "// â”€â”€ Validate incoming demo request â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€\nconst body = $input.first().json?.body ?? $input.first().json ?? {};\n\nconst VALID_JOBS = [\u0027debt-reminder\u0027, \u0027weekly-report\u0027, \u0027reminder-creation\u0027, \u0027cleanup\u0027];\n\nconst jobType = body.job_type ?? body.jobType ?? null;\nconst userId  = body.user_id  ?? body.userId  ?? null;\n\nif (!jobType) {\n  throw new Error(\u0027Missing field: job_type. Valid values: \u0027 + VALID_JOBS.join(\u0027, \u0027));\n}\nif (!VALID_JOBS.includes(jobType)) {\n  throw new Error(`Unknown job_type \"${jobType}\". Valid: ${VALID_JOBS.join(\u0027, \u0027)}`);\n}\n\nconsole.log(`[Wariskan DEMO] â–¶ Running job: ${jobType}${userId ? ` for user: ${userId}` : \u0027 (all users)\u0027}`);\nconsole.log(`[Wariskan DEMO] Started at: ${new Date().toISOString()}`);\n\nreturn [{ json: { jobType, userId, startedAt: new Date().toISOString() } }];"
+                                         "jsCode":  "// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Validate incoming demo request ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬\nconst body = $input.first().json?.body ?? $input.first().json ?? {};\n\nconst VALID_JOBS = [\u0027debt-reminder\u0027, \u0027weekly-report\u0027, \u0027reminder-creation\u0027, \u0027cleanup\u0027];\n\nconst jobType = body.job_type ?? body.jobType ?? null;\nconst userId  = body.user_id  ?? body.userId  ?? null;\n\nif (!jobType) {\n  throw new Error(\u0027Missing field: job_type. Valid values: \u0027 + VALID_JOBS.join(\u0027, \u0027));\n}\nif (!VALID_JOBS.includes(jobType)) {\n  throw new Error(`Unknown job_type \"${jobType}\". Valid: ${VALID_JOBS.join(\u0027, \u0027)}`);\n}\n\nconsole.log(`[Wariskan DEMO] ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“Ãƒâ€šÃ‚Â¶ Running job: ${jobType}${userId ? ` for user: ${userId}` : \u0027 (all users)\u0027}`);\nconsole.log(`[Wariskan DEMO] Started at: ${new Date().toISOString()}`);\n\nreturn [{ json: { jobType, userId, startedAt: new Date().toISOString() } }];"
                                      },
                       "id":  "c01015e5-13cc-4eb2-9f7d-2055f4709797",
                       "name":  "Validate \u0026 Log Request",
@@ -1126,7 +1126,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "// â”€â”€ Format demo output for the judge\u0027s screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€\nconst schedulerRes = $input.first().json;\nconst jobMeta      = $(\u0027Validate \u0026 Log Request\u0027).first().json;\n\nconst body = schedulerRes.body ?? schedulerRes;\n\n// Visible in n8n execution log â€” this is the \u0027see, the agent is doing it\u0027 moment\nconsole.log(\u0027â•\u0027.repeat(50));\nconsole.log(\u0027ðŸ¤– WARISKAN DEMO â€” JOB RESULT\u0027);\nconsole.log(\u0027â•\u0027.repeat(50));\nconsole.log(`Job      : ${jobMeta.jobType}`);\nconsole.log(`User     : ${jobMeta.userId ?? \u0027(all users)\u0027}`);\nconsole.log(`Success  : ${body.success}`);\nconsole.log(`Processed: ${body.processedCount ?? \u0027N/A\u0027}`);\nconsole.log(`Skipped  : ${body.skippedCount  ?? \u0027N/A\u0027}`);\nconsole.log(`Duration : ${body.durationMs    ?? \u0027N/A\u0027} ms`);\nif (body.errors?.length) {\n  console.log(`Errors   : ${body.errors.length}`);\n  body.errors.forEach((e, i) =\u003e console.log(`  [${i+1}] ${e}`));\n}\nconsole.log(\u0027â•\u0027.repeat(50));\n\n// Structured output for respond node\nconst output = {\n  job:          jobMeta.jobType,\n  user:         jobMeta.userId ?? \u0027all\u0027,\n  success:      body.success ?? false,\n  processed:    body.processedCount ?? 0,\n  skipped:      body.skippedCount  ?? 0,\n  durationMs:   body.durationMs    ?? null,\n  errors:       body.errors        ?? [],\n  startedAt:    jobMeta.startedAt,\n  finishedAt:   new Date().toISOString(),\n};\n\nreturn [{ json: output }];"
+                                         "jsCode":  "// ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ Format demo output for the judge\u0027s screen ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚ÂÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬\nconst schedulerRes = $input.first().json;\nconst jobMeta      = $(\u0027Validate \u0026 Log Request\u0027).first().json;\n\nconst body = schedulerRes.body ?? schedulerRes;\n\n// Visible in n8n execution log ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â this is the \u0027see, the agent is doing it\u0027 moment\nconsole.log(\u0027ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â\u0027.repeat(50));\nconsole.log(\u0027ÃƒÆ’Ã‚Â°Ãƒâ€¦Ã‚Â¸Ãƒâ€šÃ‚Â¤ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Å“ WARISKAN DEMO ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â JOB RESULT\u0027);\nconsole.log(\u0027ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â\u0027.repeat(50));\nconsole.log(`Job      : ${jobMeta.jobType}`);\nconsole.log(`User     : ${jobMeta.userId ?? \u0027(all users)\u0027}`);\nconsole.log(`Success  : ${body.success}`);\nconsole.log(`Processed: ${body.processedCount ?? \u0027N/A\u0027}`);\nconsole.log(`Skipped  : ${body.skippedCount  ?? \u0027N/A\u0027}`);\nconsole.log(`Duration : ${body.durationMs    ?? \u0027N/A\u0027} ms`);\nif (body.errors?.length) {\n  console.log(`Errors   : ${body.errors.length}`);\n  body.errors.forEach((e, i) =\u003e console.log(`  [${i+1}] ${e}`));\n}\nconsole.log(\u0027ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢Ãƒâ€šÃ‚Â\u0027.repeat(50));\n\n// Structured output for respond node\nconst output = {\n  job:          jobMeta.jobType,\n  user:         jobMeta.userId ?? \u0027all\u0027,\n  success:      body.success ?? false,\n  processed:    body.processedCount ?? 0,\n  skipped:      body.skippedCount  ?? 0,\n  durationMs:   body.durationMs    ?? null,\n  errors:       body.errors        ?? [],\n  startedAt:    jobMeta.startedAt,\n  finishedAt:   new Date().toISOString(),\n};\n\nreturn [{ json: output }];"
                                      },
                       "id":  "51865ad3-7c9e-40e8-99ef-108d2442d200",
                       "name":  "Format Demo Output",
@@ -1164,11 +1164,11 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "### ðŸ’¡ Quick curl for demo:\n```bash\ncurl -X POST \\\n  http://localhost:5678/webhook/demo/run-job \\\n  -H \u0027Content-Type: application/json\u0027 \\\n  -d \u0027{\"job_type\":\"weekly-report\",\"user_id\":\"YOUR_USER_ID\"}\u0027\n```",
+                                         "content":  "## Demo Curl\n\nPOST /webhook/demo/run-job\nContent-Type: application/json\n\n{\n  \"job_type\": \"weekly-report\",\n  \"user_id\": \"YOUR_USER_ID\"\n}",
                                          "width":  380
                                      },
                       "id":  "e56743bf-0fb1-42e1-b5fd-ae0af986872f",
-                      "name":  "Sticky Note1",
+                      "name":  "Demo Curl Notes",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -1178,13 +1178,13 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "## ðŸŽ¬ Wariskan â€” Manual Demo Trigger\n\n**USE THIS DURING LIVE DEMO / HACKATHON PITCH**\n\n### How to trigger:\n```\nPOST /webhook/demo/run-job\nContent-Type: application/json\n\n{\n  \"job_type\": \"weekly-report\",\n  \"user_id\": \"a0000001-...\"\n}\n```\n\n### Valid job_type values:\n- `debt-reminder` â€” send today\u0027s due reminders\n- `weekly-report` â€” send weekly summary\n- `reminder-creation` â€” create upcoming reminder rows\n- `cleanup` â€” cancel stale pending transactions\n\n### For demo effect:\n1. Open n8n execution log\n2. Trigger via curl / Postman\n3. Show judges the **Format Demo Output** node â€” big log block with emoji\n4. Show the WhatsApp message arriving on phone\n\n### Env vars:\n- `SCHEDULER_BASE_URL` â€” scheduler HTTP server URL\n- `SCHEDULER_API_KEY` â€” optional auth key",
+                                         "content":  "## Manual Demo Trigger\n\nUse this during a live demo to trigger scheduler jobs manually.\nValid job_type values:\n- debt-reminder\n- weekly-report\n- reminder-creation\n- cleanup",
                                          "height":  460,
                                          "width":  420,
                                          "color":  4
                                      },
                       "id":  "9f408a8c-b555-40c6-9920-24e107395c75",
-                      "name":  "Sticky Note2",
+                      "name":  "Manual Demo Trigger Notes",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -1262,12 +1262,12 @@
                   },
                   {
                       "parameters":  {
-                                         "content":  "## ðŸ“Š Wariskan â€” Weekly Report Cron\n\nRuns every **Sunday at 20:00 WIB** (13:00 UTC).\n\nSends a full weekly financial summary to every active user covering **Monâ€“Sun** of the past week.\n\n**Idempotent** â€” duplicate reports for the same week are skipped automatically (checked via `weekly_reports` table).\n\n**Env vars needed:**\n- `SCHEDULER_BASE_URL` â€” e.g. `http://localhost:3001`\n- `SCHEDULER_API_KEY` â€” optional",
+                                         "content":  "## Weekly Report Cron\n\nRuns the weekly report job on Sunday.\nThis is optional for the WhatsApp text demo.",
                                          "height":  220,
                                          "width":  360
                                      },
                       "id":  "c287f97b-5dd4-47e3-8ff1-a2c6e04eb8de",
-                      "name":  "Sticky Note3",
+                      "name":  "Weekly Report Notes",
                       "type":  "n8n-nodes-base.stickyNote",
                       "typeVersion":  1,
                       "position":  [
@@ -1290,7 +1290,7 @@
                   },
                   {
                       "parameters":  {
-                                         "jsCode":  "if ($json._skip) return [$input.first()];\n\nconst phone = $(\u0027Parse WhatsApp Payload\u0027).item.json.senderPhone ?? $json.senderPhone ?? $json.to ?? \"\";\nconst message = $json.replyText ?? $json.confirmationMessage ?? \"Transaksi dicatat!\";\nconst token   = $env.WHATSAPP_TOKEN;\nconst phoneId = $env.WHATSAPP_PHONE_NUMBER_ID;\n\nconst result = await this.helpers.httpRequest({\n  method: \u0027POST\u0027,\n  url: `https://graph.facebook.com/v18.0/${phoneId}/messages`,\n  headers: {\n    \u0027Authorization\u0027: `Bearer ${token}`,\n    \u0027Content-Type\u0027: \u0027application/json\u0027,\n  },\n  body: {\n    messaging_product: \u0027whatsapp\u0027,\n    to: phone,\n    type: \u0027text\u0027,\n    text: { body: message },\n  },\n});\n\nreturn [{ json: { ...($input.first().json), whatsappResult: result } }];"
+                                         "jsCode":  "if ($json._skip) return [$input.first()];\n\nlet parsed = {};\ntry {\n  parsed = $(\u0027Parse WhatsApp Payload\u0027).first().json;\n} catch (_) {\n  parsed = {};\n}\n\nconst rawPhone = parsed.senderPhone ?? $json.senderPhone ?? $json.to ?? \"\";\nconst phone = String(rawPhone).replace(/[^0-9]/g, \"\");\nconst message = $json.replyText ?? $json.confirmationMessage ?? \"Transaksi dicatat!\";\nconst token = $env.WHATSAPP_TOKEN;\nconst phoneId = $env.WHATSAPP_PHONE_NUMBER_ID;\nconst apiVersion = $env.WHATSAPP_API_VERSION ?? \"v18.0\";\n\nif (!phone) {\n  return [{ json: { ...($input.first().json), whatsappSkipped: true, whatsappSkipReason: \"No recipient phone in webhook payload\" } }];\n}\n\nif ($env.WHATSAPP_MOCK_MODE === \"true\") {\n  return [{ json: { ...($input.first().json), whatsappMocked: true, to: phone, text: message } }];\n}\n\nif (!token || !phoneId) {\n  throw new Error(\"Missing WHATSAPP_TOKEN or WHATSAPP_PHONE_NUMBER_ID env var\");\n}\n\ntry {\n  const result = await this.helpers.httpRequest({\n    method: \"POST\",\n    url: `https://graph.facebook.com/${apiVersion}/${phoneId}/messages`,\n    headers: {\n      Authorization: `Bearer ${token}`,\n      \"Content-Type\": \"application/json\",\n    },\n    body: {\n      messaging_product: \"whatsapp\",\n      to: phone,\n      type: \"text\",\n      text: { body: message },\n    },\n    json: true,\n  });\n\n  return [{ json: { ...($input.first().json), whatsappResult: result, to: phone } }];\n} catch (err) {\n  const responseBody = err.response?.body ?? err.cause?.response?.body ?? err.description ?? err.message;\n  return [{\n    json: {\n      ...($input.first().json),\n      whatsappSendFailed: true,\n      to: phone,\n      whatsappErrorMessage: err.message,\n      whatsappError: responseBody,\n    }\n  }];\n}"
                                      },
                       "type":  "n8n-nodes-base.code",
                       "typeVersion":  2,

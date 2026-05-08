@@ -6,8 +6,9 @@
         "rule": {
           "interval": [
             {
-              "field": "cronExpression",
-              "expression": "0 2 * * *"
+              "field": "hours",
+              "hoursInterval": 24,
+              "triggerAtHour": 2
             }
           ]
         }
@@ -16,18 +17,21 @@
       "name": "Daily Trigger (09:00 WIB)",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.1,
-      "position": [240, 300],
-      "notes": "09:00 WIB = 02:00 UTC (WIB is UTC+7, no DST)"
+      "position": [
+        240,
+        300
+      ],
+      "notes": "Runs daily at 09:00 WIB when n8n/server timezone is UTC. If your n8n timezone is Asia/Jakarta, set triggerAtHour to 9 after import."
     },
     {
       "parameters": {
-        "url": "={{ $env.SCHEDULER_BASE_URL }}/run/reminder-creation",
+        "url": "={{ $env.SCHEDULER_BASE_URL || $env.HELPER_API_URL || \"http://localhost:3001\" }}/run/reminder-creation",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{ $env.SCHEDULER_API_KEY }}"
+              "value": "={{ $env.SCHEDULER_API_KEY || $env.HELPER_API_KEY || \"dev\" }}"
             },
             {
               "name": "Content-Type",
@@ -48,7 +52,10 @@
       "name": "Create Due Reminders",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [460, 300]
+      "position": [
+        460,
+        300
+      ]
     },
     {
       "parameters": {
@@ -58,17 +65,20 @@
       "name": "Log Creation Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 300]
+      "position": [
+        680,
+        300
+      ]
     },
     {
       "parameters": {
-        "url": "={{ $env.SCHEDULER_BASE_URL }}/run/debt-reminder",
+        "url": "={{ $env.SCHEDULER_BASE_URL || $env.HELPER_API_URL || \"http://localhost:3001\" }}/run/debt-reminder",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "x-api-key",
-              "value": "={{ $env.SCHEDULER_API_KEY }}"
+              "value": "={{ $env.SCHEDULER_API_KEY || $env.HELPER_API_KEY || \"dev\" }}"
             },
             {
               "name": "Content-Type",
@@ -89,7 +99,10 @@
       "name": "Send Debt Reminders",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [900, 300]
+      "position": [
+        900,
+        300
+      ]
     },
     {
       "parameters": {
@@ -99,7 +112,10 @@
       "name": "Log Reminder Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 300]
+      "position": [
+        1120,
+        300
+      ]
     },
     {
       "parameters": {
@@ -111,28 +127,55 @@
       "name": "Sticky Note",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [240, 80]
+      "position": [
+        240,
+        80
+      ]
     }
   ],
   "connections": {
     "Daily Trigger (09:00 WIB)": {
       "main": [
-        [{ "node": "Create Due Reminders", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Create Due Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Create Due Reminders": {
       "main": [
-        [{ "node": "Log Creation Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log Creation Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Log Creation Result": {
       "main": [
-        [{ "node": "Send Debt Reminders", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send Debt Reminders",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send Debt Reminders": {
       "main": [
-        [{ "node": "Log Reminder Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log Reminder Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
@@ -143,8 +186,10 @@
     "callerPolicy": "workflowsFromSameOwner",
     "errorWorkflow": ""
   },
-  "tags": ["wariskan", "cron", "reminders"],
+  "tags": [],
   "meta": {
     "templateCredsSetupCompleted": false
-  }
+  },
+  "pinData": {},
+  "staticData": null
 }

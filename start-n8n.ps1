@@ -19,6 +19,7 @@ $env:WH_RATE_LIMIT_PER_MIN = "30"
 $env:N8N_COMMUNITY_PACKAGES_ENABLED = "false"
 $env:N8N_HIRING_BANNER_ENABLED      = "false"
 $env:N8N_BLOCK_ENV_ACCESS_IN_NODE   = "false"
+$env:npm_config_cache               = Join-Path $PSScriptRoot ".npm-cache"
 
 Write-Host "Starting n8n v2.18.5..." -ForegroundColor Cyan
-npx n8n@2.18.5 start
+npx.cmd --yes n8n@2.18.5 start

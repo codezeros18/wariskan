@@ -28,6 +28,11 @@ function cfg() {
     token:         process.env.WHATSAPP_TOKEN,
     phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
     apiVersion:    process.env.WHATSAPP_API_VERSION ?? 'v18.0',
+    provider:      process.env.WHATSAPP_PROVIDER || process.env.WA_PROVIDER || '',
+    wahaBaseUrl:   process.env.WAHA_BASE_URL || process.env.WAHA_API_URL || 'http://localhost:3000',
+    wahaApiKey:    process.env.WAHA_API_KEY || process.env.WAHA_APIKEY || 'wariskan123',
+    wahaSession:   process.env.WAHA_SESSION || 'default',
+    wahaOwnerChatId: process.env.WAHA_OWNER_CHAT_ID || process.env.OWNER_CHAT_ID || '6281284818862@c.us',
     supabaseUrl:   process.env.SUPABASE_URL,
     supabaseKey:   process.env.SUPABASE_SERVICE_KEY,
     mockMode:      process.env.WHATSAPP_MOCK_MODE === 'true',
@@ -58,6 +63,21 @@ function truncate(text, limit = 4096) {
   if (text.length <= limit) return text;
   const cutoff  = limit - 40;
   return text.slice(0, cutoff) + '\n\n_[Pesan dipotong — terlalu panjang]_';
+}
+
+function shouldUseWaha(config) {
+  const provider = String(config.provider || '').toLowerCase();
+  return provider === 'waha' || provider === 'noweb' || (!config.token && !config.phoneNumberId);
+}
+
+function normalizeWahaChatId(phoneNumber, config) {
+  if (process.env.WAHA_OWNER_ONLY === 'true' || config.wahaOwnerChatId) {
+    return config.wahaOwnerChatId;
+  }
+
+  const raw = String(phoneNumber || '').trim();
+  if (raw.includes('@')) return raw;
+  return `${raw.replace(/^\+/, '')}@c.us`;
 }
 
 // ─── Token Bucket rate limiter ────────────────────────────────────────────────
@@ -180,13 +200,46 @@ function getQueue() {
  * @returns {{ success: boolean, messageId?: string, mock?: boolean }}
  */
 async function _sendViaAPI(phoneNumber, payload) {
-  const { token, phoneNumberId, apiVersion, mockMode } = cfg();
+  const config = cfg();
+  const { token, phoneNumberId, apiVersion, mockMode } = config;
 
   // ── Mock mode ────────────────────────────────────────────────────────────
   if (mockMode) {
     const mockId = `mock-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     console.log(`[WA MOCK] → ${phoneNumber} [${payload.type}]:`, JSON.stringify(payload).slice(0, 200));
     return { success: true, mock: true, messageId: mockId };
+  }
+
+  if (shouldUseWaha(config)) {
+    const chatId = normalizeWahaChatId(phoneNumber, config);
+    const url = `${config.wahaBaseUrl.replace(/\/$/, '')}/api/sendText`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Api-Key': config.wahaApiKey,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        session: config.wahaSession,
+        chatId,
+        text: payload.text?.body || '',
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data?.error) {
+      const err = new Error(`[WAHA] API error ${res.status}: ${data?.error || data?.message || JSON.stringify(data)}`);
+      err.status = res.status;
+      err.waError = data;
+      throw err;
+    }
+
+    return {
+      success: true,
+      provider: 'waha',
+      messageId: data.key?.id || data.id,
+      data,
+    };
   }
 
   // ── Validate config ──────────────────────────────────────────────────────

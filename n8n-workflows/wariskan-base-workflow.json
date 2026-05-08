@@ -1,82 +1,100 @@
 {
-  "name": "Wariskan — WhatsApp Base Workflow",
+  "name": "Wariskan - WhatsApp Base Workflow",
   "nodes": [
     {
       "id": "sn-00-overview",
-      "name": "📋 Overview",
+      "name": "Overview",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-300, -560],
+      "position": [
+        -300,
+        -560
+      ],
       "parameters": {
         "color": 4,
         "width": 3000,
         "height": 180,
-        "content": "## 🤖 Wariskan — WhatsApp AI Bookkeeper | Base Workflow\n\n**Builder 3 (PM/Infra):** Setup credentials (Supabase Postgres, Anthropic, OpenAI, WhatsApp) + env vars + aktifkan webhook di Meta Developer Console.\n**Builder 1:** Implement node **Claude Extract** — paste system prompt dari `prompts/extraction-system-prompt.md`, parse JSON response, connect ke Validate JSON.\n**Builder 2:** Implement **Whisper STT** + **Claude Vision** — handle download audio/image dari WA Media API, kirim ke OpenAI/Anthropic, connect ke Validate JSON.\n\n🟡 Kuning = Parsing & User | 🟣 Ungu = Routing | 🔴 Merah = AI (Builder 1 & 2) | 🟢 Hijau = Storage & Reply | 🔵 Biru = Verification"
+        "content": "## Wariskan - WhatsApp AI Bookkeeper | Base Workflow\n\nWAHA mode aktif. Workflow ini menerima pesan WhatsApp, mengekstrak transaksi, menyimpan ke Supabase, sinkron ke Google Sheets, lalu membalas hanya ke owner.\n\nAlur utama:\n1. Parse WhatsApp payload dan normalisasi sender/chat id.\n2. Get or Create User di Supabase.\n3. Route text, audio, dan image.\n4. AI extraction untuk transaksi.\n5. Validate JSON, save Supabase, sync Sheets.\n6. Build reply dan kirim via WAHA.\n\nWarna section: Parsing, AI, Storage, Reply, Verification."
       }
     },
     {
       "id": "sn-01-verify",
-      "name": "📝 Verification Section",
+      "name": "Verification Section",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-300, -340],
+      "position": [
+        -300,
+        -340
+      ],
       "parameters": {
         "color": 3,
         "width": 720,
         "height": 280,
-        "content": "## ✅ Meta Webhook Verification (GET)\n\nMeta kirim GET ke URL webhook saat pertama kali dikonfigurasi.\nWorkflow ini cek `hub.verify_token` dan balas dengan `hub.challenge`.\n\n**Env var yang dibutuhkan:**\n`WHATSAPP_VERIFY_TOKEN` = token yang kamu set di Meta Developer Console\n\n**Setup:** Webhook → Meta App → WhatsApp → Configuration → Callback URL"
+        "content": "## Webhook Verification (Legacy Meta)\n\nSection ini hanya peninggalan template Meta.\nUntuk setup kita sekarang, gunakan WAHA webhook dan abaikan Meta.\n\nWAHA webhook aktif:\nPOST /webhook/whatsapp-webhook"
       }
     },
     {
       "id": "sn-02-parse",
-      "name": "📨 Parse & User Section",
+      "name": "Parse & User Section",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [480, -340],
+      "position": [
+        480,
+        -340
+      ],
       "parameters": {
         "color": 1,
         "width": 720,
         "height": 280,
-        "content": "## 📨 Message Ingestion & User Management\n\n1. **Parse Payload** → ekstrak sender, messageId, type, content\n2. **Get or Create User** → lookup by phone di Supabase, buat baru jika belum ada\n3. **Log Incoming Message** → simpan raw payload (idempotent via wamid UNIQUE)\n\n⚠️ `rawPayload` disimpan untuk debugging.\nJangan hapus `incoming_messages` records saat testing.\n\n**Env vars:** `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`"
+        "content": "## Message Ingestion & User Management\n\n1. Parse Payload: ekstrak sender, chatId, messageId, type, dan content.\n2. Get or Create User: lookup by phone di Supabase, buat user baru jika belum ada.\n3. Log Incoming Message: simpan raw payload untuk debugging dan idempotency.\n\nJangan hapus incoming_messages saat testing kecuali memang reset demo."
       }
     },
     {
       "id": "sn-03-ai",
-      "name": "🤖 AI Processing Section",
+      "name": "AI Processing Section",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1460, -340],
+      "position": [
+        1460,
+        -340
+      ],
       "parameters": {
         "color": 2,
         "width": 760,
         "height": 280,
-        "content": "## 🤖 AI Processing — IMPLEMENT HERE (Builder 1 & 2)\n\n**Claude Extract (text/audio):** POST → Anthropic API\n- Paste system prompt dari `prompts/extraction-system-prompt.md`\n- Parse `$json.content[0].text` sebagai JSON\n- Env: `ANTHROPIC_API_KEY`\n\n**Whisper STT (audio):** POST → OpenAI `/v1/audio/transcriptions`\n- Kirim audio blob dari Download Media, terima transcript\n- Env: `OPENAI_API_KEY`\n\n**Claude Vision (image):** POST → Anthropic API dengan image_url\n- Model: claude-3-5-sonnet-20241022"
+        "content": "## AI Processing\n\nText: Claude Extract membaca chat biasa.\nAudio: OpenAI transcription membaca voice note, lalu hasil transcript diekstrak.\nImage: Claude Vision membaca struk/foto transaksi.\n\nOutput wajib berupa JSON:\ncategory, nominal, item, pihak, tanggal, jatuh_tempo, confidence."
       }
     },
     {
       "id": "sn-04-storage",
-      "name": "💾 Storage & Reply Section",
+      "name": "Storage & Reply Section",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [2280, -340],
+      "position": [
+        2280,
+        -340
+      ],
       "parameters": {
         "color": 3,
         "width": 740,
         "height": 280,
-        "content": "## 💾 Storage & WhatsApp Reply\n\n1. **Validate JSON** → cek output Claude punya field wajib (category, nominal)\n2. **Save to Supabase** → POST `/rest/v1/transactions`\n3. **Save to Google Sheets** → call `appendTransaction()` via HTTP ke helper\n4. **Send WhatsApp Reply** → kirim konfirmasi ke user\n\n**Env vars:** `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`\n\n💡 Builder 1: connect Validate JSON → Save Supabase setelah Claude Extract ready"
+        "content": "## Storage & WhatsApp Reply\n\n1. Validate JSON: cek category dan nominal.\n2. Save to Supabase: sumber data utama.\n3. Save to Google Sheets: mirror per user/tab di master sheet.\n4. Build Reply Message: format ramah untuk pengguna.\n5. Send WhatsApp Reply: owner-only ke nomor utama.\n\nPastikan sheets-api hidup dengan secrets.ps1 sebelum demo."
       }
     },
     {
       "id": "sn-05-error",
-      "name": "🚨 Error Handling",
+      "name": "Error Handling",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1200, 460],
+      "position": [
+        1200,
+        460
+      ],
       "parameters": {
         "color": 2,
         "width": 480,
         "height": 180,
-        "content": "## 🚨 Error Notification (Placeholder)\n\nConnect node-node penting ke **Send Error Notification**:\n- Get or Create User → error output\n- Claude Extract → error output\n- Save to Supabase → error output\n\nDi n8n: Settings → Error Workflow → pilih workflow ini.\nAtau set `SLACK_ERROR_WEBHOOK` dan connect manual."
+        "content": "## Error Handling\n\nJika node penting gagal, kirim pesan yang jelas dan tidak teknis ke WhatsApp.\nUntuk operator, cek execution log n8n, Supabase row, dan health sheets-api.\n\nHealth check:\nGET http://localhost:3001/health"
       }
     },
     {
@@ -84,7 +102,10 @@
       "name": "WhatsApp Verification",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [-240, -200],
+      "position": [
+        -240,
+        -200
+      ],
       "webhookId": "wh-verify-0001-4001-8001-wariskan0001",
       "parameters": {
         "httpMethod": "GET",
@@ -98,7 +119,10 @@
       "name": "Verify Token Match",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [20, -200],
+      "position": [
+        20,
+        -200
+      ],
       "parameters": {
         "conditions": {
           "string": [
@@ -121,7 +145,10 @@
       "name": "Respond Hub Challenge",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [280, -280],
+      "position": [
+        280,
+        -280
+      ],
       "parameters": {
         "respondWith": "text",
         "responseBody": "={{ $('WhatsApp Verification').item.json.query['hub.challenge'] }}",
@@ -135,7 +162,10 @@
       "name": "Respond Forbidden",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [280, -120],
+      "position": [
+        280,
+        -120
+      ],
       "parameters": {
         "respondWith": "text",
         "responseBody": "Forbidden: invalid verify_token",
@@ -149,7 +179,10 @@
       "name": "WhatsApp Messages",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [480, 100],
+      "position": [
+        480,
+        100
+      ],
       "webhookId": "wh-msg-00002-4001-8001-wariskan0002",
       "parameters": {
         "httpMethod": "POST",
@@ -163,9 +196,12 @@
       "name": "Parse WhatsApp Payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [740, 100],
+      "position": [
+        740,
+        100
+      ],
       "parameters": {
-        "jsCode": "// Extract message data from WaHA (WhatsApp HTTP API) webhook payload\nconst body = $input.first().json.body ?? $input.first().json;\n\nconst event   = body.event;\nconst payload = body.payload;\n\n// Skip non-message events (message.ack, message.reaction, etc.)\nif (!payload || event !== 'message') {\n  return [{ json: { _skip: true, reason: `Non-message event: ${event ?? 'unknown'}` } }];\n}\n\n// WaHA type: 'chat' = text, 'image', 'audio', 'video', 'document'\nconst messageType = payload.type === 'chat' ? 'text' : (payload.type ?? 'text');\nconst senderPhone = (payload.from ?? '').replace('@c.us', '').replace('@g.us', '');\nconst senderName  = payload._data?.notifyName ?? payload.pushName ?? senderPhone;\n\nreturn [{\n  json: {\n    senderPhone,\n    messageId:     payload.id,\n    messageType,\n    timestamp:     new Date((payload.timestamp ?? 0) * 1000).toISOString(),\n    textContent:   payload.body ?? null,\n    mediaId:       payload.mediaUrl ?? null,\n    mediaMimeType: payload.mimetype ?? null,\n    senderName,\n    waPhoneId:     null,\n    rawPayload:    JSON.stringify(body),\n    _skip:         false,\n  }\n}];"
+        "jsCode": "const item = $input.first().json;\nconst body = item.body ?? item;\n\nlet payload = null;\nif (body?.payload) payload = body.payload;\nelse if (body?.body?.payload) payload = body.body.payload;\nelse if (body?.from) payload = body;\nelse if (body?.body?.from) payload = body.body;\n\nconst event = body?.event ?? item.event ?? 'message';\nconst allowedEvents = ['message', 'message.any'];\nif (!payload || !allowedEvents.includes(event)) {\n  return [{ json: { _skip: true, reason: `Non-message event or missing payload: ${event}`, rawPayload: JSON.stringify(body) } }];\n}\n\nif (payload.fromMe) {\n  return [{ json: { _skip: true, reason: 'Skipping bot/fromMe message to prevent reply loop', rawPayload: JSON.stringify(body) } }];\n}\n\nconst incomingChatId = payload.chatId || payload.from || '';\nif (String(incomingChatId).includes('@g.us')) {\n  return [{ json: { _skip: true, reason: 'Ignoring group message in owner-only mode', chatId: incomingChatId, rawPayload: JSON.stringify(body) } }];\n}\n\nconst rawTimestamp = Number(payload.timestamp ?? body?.timestamp ?? 0);\nconst eventMs = rawTimestamp > 1000000000000 ? rawTimestamp : rawTimestamp * 1000;\nconst ageMs = eventMs ? Date.now() - eventMs : 0;\nconst maxAgeMs = 10 * 60 * 1000;\nif (ageMs > maxAgeMs) {\n  return [{ json: { _skip: true, reason: 'Skipping stale/backlog message', ageMs, eventTimestamp: new Date(eventMs).toISOString(), chatId: incomingChatId, rawPayload: JSON.stringify(body) } }];\n}\n\nconst cleanPhone = (value) => String(value ?? '')\n  .replace('@c.us', '')\n  .replace('@g.us', '')\n  .replace('@lid', '')\n  .replace('@s.whatsapp.net', '')\n  .replace(/[^0-9+]/g, '');\n\nconst exactChatId = payload.chatId || payload.from;\nconst remoteJidAlt = payload._data?.key?.remoteJidAlt || null;\nconst contactJid = remoteJidAlt || payload.from || exactChatId;\nconst senderPhone = cleanPhone(contactJid);\nconst replyTo = exactChatId || contactJid;\nconst media = payload.media ?? null;\nconst mediaUrl = media?.url ?? payload.mediaUrl ?? media?.link ?? null;\nconst mediaMimeType = media?.mimetype ?? media?.mimeType ?? payload.mimetype ?? payload._data?.message?.imageMessage?.mimetype ?? payload._data?.message?.audioMessage?.mimetype ?? null;\nconst rawType = String(payload.type ?? media?.type ?? payload._data?.messageType ?? '').toLowerCase();\nconst hasMedia = Boolean(payload.hasMedia || mediaUrl || mediaMimeType || media);\n\nlet messageType = rawType === 'chat' || !rawType ? 'text' : rawType;\nif (hasMedia && (mediaMimeType?.startsWith('image/') || rawType.includes('image') || payload._data?.message?.imageMessage)) messageType = 'image';\nif (hasMedia && (mediaMimeType?.startsWith('audio/') || rawType.includes('audio') || rawType === 'ptt' || payload._data?.message?.audioMessage)) messageType = 'audio';\n\nconst senderName = payload._data?.pushName ?? payload._data?.notifyName ?? payload.pushName ?? senderPhone;\nconst mediaDebug = {\n  hasMedia,\n  media,\n  mediaUrl,\n  mediaMimeType,\n  mediaError: media?.error ?? null,\n  payloadKeys: Object.keys(payload),\n  dataKeys: Object.keys(payload._data ?? {}),\n  exactChatId,\n  remoteJidAlt,\n};\n\nreturn [{\n  json: {\n    senderPhone,\n    replyTo,\n    chatId: exactChatId,\n    contactJid,\n    remoteJidAlt,\n    messageId: payload.id,\n    messageType,\n    timestamp: new Date((payload.timestamp ?? Date.now() / 1000) * 1000).toISOString(),\n    textContent: payload.body ?? payload.caption ?? '',\n    mediaId: mediaUrl,\n    mediaUrl,\n    mediaMimeType,\n    mediaError: media?.error ?? null,\n    hasMedia,\n    senderName,\n    waPhoneId: null,\n    rawPayload: JSON.stringify(body),\n    mediaDebug,\n    _skip: false,\n  }\n}];"
       }
     },
     {
@@ -173,9 +209,12 @@
       "name": "Get or Create User",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1000, 100],
+      "position": [
+        1000,
+        100
+      ],
       "parameters": {
-        "jsCode": "const { senderPhone, senderName, _skip } = $input.first().json;\n\n// Pass-through for status updates and pings\nif (_skip) return [$input.first()];\n\nconst BASE  = $env.SUPABASE_URL;\nconst KEY   = $env.SUPABASE_SERVICE_KEY;\nconst hdrs  = {\n  'apikey':        KEY,\n  'Authorization': `Bearer ${KEY}`,\n  'Content-Type':  'application/json',\n};\n\n// ── 1. Lookup existing user ──────────────────────────────────\nconst lookupRes = await fetch(\n  `${BASE}/rest/v1/users?whatsapp_phone=eq.${encodeURIComponent(senderPhone)}&select=id,whatsapp_phone,display_name,sheet_id,sheet_url`,\n  { headers: hdrs }\n);\nconst existing = await lookupRes.json();\n\nlet user;\nlet isNew = false;\n\nif (existing?.length > 0) {\n  user = existing[0];\n} else {\n  // ── 2. Create new user ──────────────────────────────────────\n  const createRes = await fetch(`${BASE}/rest/v1/users`, {\n    method:  'POST',\n    headers: { ...hdrs, 'Prefer': 'return=representation' },\n    body:    JSON.stringify({\n      whatsapp_phone: senderPhone,\n      display_name:   senderName ?? senderPhone,\n    }),\n  });\n  const created = await createRes.json();\n  user  = created[0];\n  isNew = true;\n  // TODO (Builder 3): call createUserSheet() here when sheet helper API is live\n  // then PATCH user.sheet_id + user.sheet_url back to Supabase\n}\n\n// ── 3. Update last_active_at (non-critical, swallow errors) ──\ntry {\n  await fetch(`${BASE}/rest/v1/users?id=eq.${user.id}`, {\n    method:  'PATCH',\n    headers: hdrs,\n    body:    JSON.stringify({ last_active_at: new Date().toISOString() }),\n  });\n} catch (_) { /* intentionally ignored */ }\n\nreturn [{ json: { ...($input.first().json), user: { ...user, isNew } } }];"
+        "jsCode": "const { senderPhone, senderName, _skip } = $input.first().json;\n\nif (_skip) return [$input.first()];\n\nconst BASE = $env.SUPABASE_URL;\nconst KEY = $env.SUPABASE_SERVICE_KEY;\n\nif (!BASE || !KEY) {\n  throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY');\n}\n\nconst headers = {\n  apikey: KEY,\n  Authorization: `Bearer ${KEY}`,\n  'Content-Type': 'application/json',\n};\n\nconst rawPhone = String(senderPhone ?? '').trim();\nconst digits = rawPhone.replace(/[^0-9]/g, '');\nconst phoneCandidates = [...new Set([\n  rawPhone,\n  digits,\n  digits.startsWith('62') ? `+${digits}` : null,\n  rawPhone.startsWith('+') ? rawPhone.slice(1) : null,\n].filter(Boolean))];\n\nconst inList = phoneCandidates.map(phone => `\"${phone.replace(/\"/g, '\\\\\"')}\"`).join(',');\n\nlet existing = [];\nif (phoneCandidates.length > 0) {\n  existing = await this.helpers.httpRequest({\n    method: 'GET',\n    url: `${BASE}/rest/v1/users?whatsapp_phone=in.(${encodeURIComponent(inList)})&select=id,whatsapp_phone,display_name,sheet_id,sheet_url`,\n    headers,\n    json: true,\n  });\n}\n\nlet user = Array.isArray(existing) && existing.length > 0 ? existing[0] : null;\nlet isNew = false;\nconst canonicalPhone = digits.startsWith('62') ? `+${digits}` : (rawPhone || digits);\nconst now = new Date().toISOString();\n\nif (user) {\n  try {\n    const updated = await this.helpers.httpRequest({\n      method: 'PATCH',\n      url: `${BASE}/rest/v1/users?id=eq.${user.id}`,\n      headers: { ...headers, Prefer: 'return=representation' },\n      body: { last_active_at: now },\n      json: true,\n    });\n    user = Array.isArray(updated) && updated.length > 0 ? { ...user, ...updated[0] } : user;\n  } catch (err) {\n    console.log(`[Get or Create User] last_active_at update skipped: ${err.message}`);\n  }\n} else {\n  try {\n    const created = await this.helpers.httpRequest({\n      method: 'POST',\n      url: `${BASE}/rest/v1/users?on_conflict=whatsapp_phone`,\n      headers: {\n        ...headers,\n        Prefer: 'resolution=merge-duplicates,return=representation',\n      },\n      body: {\n        whatsapp_phone: canonicalPhone,\n        display_name: senderName ?? canonicalPhone,\n        last_active_at: now,\n      },\n      json: true,\n    });\n\n    user = Array.isArray(created) ? created[0] : created;\n    isNew = true;\n  } catch (err) {\n    if (err.httpCode !== 409 && err.statusCode !== 409 && err.response?.statusCode !== 409) {\n      throw err;\n    }\n\n    const retry = await this.helpers.httpRequest({\n      method: 'GET',\n      url: `${BASE}/rest/v1/users?whatsapp_phone=eq.${encodeURIComponent(canonicalPhone)}&select=id,whatsapp_phone,display_name,sheet_id,sheet_url`,\n      headers,\n      json: true,\n    });\n    user = Array.isArray(retry) && retry.length > 0 ? retry[0] : null;\n  }\n}\n\nif (!user?.id) {\n  throw new Error(`Could not find or create user for ${rawPhone}`);\n}\n\nreturn [{ json: { ...($input.first().json), senderPhone: canonicalPhone, user: { ...user, isNew } } }];"
       }
     },
     {
@@ -183,9 +222,12 @@
       "name": "Log Incoming Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1260, 100],
+      "position": [
+        1260,
+        100
+      ],
       "parameters": {
-        "jsCode": "// Log incoming WhatsApp message to Supabase REST API.\n// Uses fetch (no credential needed) — consistent with all other helpers.\n// Fails silently: logging must never block message processing.\nconst SB_URL = $env.SUPABASE_URL ?? '';\nconst SB_KEY = $env.SUPABASE_SERVICE_KEY ?? '';\nconst item   = $input.first().json;\n\nif (SB_URL && SB_KEY) {\n  try {\n    await fetch(`${SB_URL}/rest/v1/incoming_messages`, {\n      method: 'POST',\n      headers: {\n        'apikey':         SB_KEY,\n        'Authorization':  `Bearer ${SB_KEY}`,\n        'Content-Type':   'application/json',\n        'Prefer':         'return=minimal',\n      },\n      body: JSON.stringify({\n        user_id:             item.user?.id ?? null,\n        whatsapp_message_id: item.messageId,\n        phone_from:          item.phone,\n        message_type:        item.messageType,\n        raw_text:            (item.text ?? '').slice(0, 2000) || null,\n        payload:             item.rawPayload,\n        status:              'received',\n        processed:           false,\n      }),\n    });\n  } catch (err) {\n    console.error('[Log Incoming] Failed:', err.message);\n  }\n}\n\nreturn $input.all();"
+        "jsCode": "const SB_URL = $env.SUPABASE_URL ?? '';\nconst SB_KEY = $env.SUPABASE_SERVICE_KEY ?? '';\nconst item = $input.first().json;\n\nif (SB_URL && SB_KEY && !item._skip) {\n  try {\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: `${SB_URL}/rest/v1/incoming_messages`,\n      headers: {\n        apikey: SB_KEY,\n        Authorization: `Bearer ${SB_KEY}`,\n        'Content-Type': 'application/json',\n        Prefer: 'return=minimal',\n      },\n      body: {\n        user_id: item.user?.id ?? null,\n        whatsapp_message_id: item.messageId,\n        phone_from: item.senderPhone ?? null,\n        message_type: item.messageType,\n        raw_text: (item.textContent ?? '').slice(0, 2000) || null,\n        payload: item.rawPayload,\n        status: 'received',\n        processed: false,\n      },\n      json: true,\n    });\n  } catch (err) {\n    console.log(`[Log Incoming] Failed: ${err.message}`);\n  }\n}\n\nreturn $input.all();"
       }
     },
     {
@@ -193,7 +235,10 @@
       "name": "Route by Message Type",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 2,
-      "position": [1520, 100],
+      "position": [
+        1520,
+        100
+      ],
       "parameters": {
         "mode": "expression",
         "output": "={{ $json.messageType === 'text' ? 0 : $json.messageType === 'audio' ? 1 : $json.messageType === 'image' ? 2 : 3 }}",
@@ -212,63 +257,38 @@
       "name": "Handle Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, -60],
+      "position": [
+        1780,
+        -60
+      ],
       "parameters": {
-        "jsCode": "// Prepare text message for Claude extraction\n// Builder 1: add normalization logic here (lowercase, strip emoji, etc.) if needed\n\nconst { textContent, senderPhone, _skip } = $input.first().json;\n\nif (_skip || !textContent?.trim()) {\n  return [{ json: { ...($input.first().json), _skipExtraction: true, promptInput: null } }];\n}\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    promptInput:    textContent.trim(),\n    processingMode: 'text',\n    _skipExtraction: false,\n  }\n}];"
+        "jsCode": "const item = $input.first().json;\nconst text = String(item.textContent ?? '').trim();\nconst lower = text.toLowerCase();\n\nif (item._skip || !text) {\n  return [{ json: { ...item, _skipExtraction: true, promptInput: null } }];\n}\n\nfunction parseAmount(input) {\n  const match = String(input).toLowerCase().match(/(\\d+(?:[,.]\\d+)?)\\s*(rb|ribu|k|jt|juta)?/i);\n  if (!match) return null;\n  let value = Number(match[1].replace(',', '.')) || 0;\n  const unit = match[2] || '';\n  if (/jt|juta/i.test(unit)) value *= 1000000;\n  else if (/rb|ribu|k/i.test(unit)) value *= 1000;\n  else if (value > 0 && value < 1000) value *= 1000;\n  return Math.round(value);\n}\n\nconst categoryMap = [\n  ['pemasukan', /\\b(pemasukan|masuk|jual|jualan)\\b/],\n  ['pengeluaran', /\\b(pengeluaran|keluar|beli|belanja|bayar)\\b/],\n  ['hutang', /\\b(hutang|utang)\\b/],\n  ['piutang', /\\b(piutang)\\b/],\n  ['bayar_hutang', /\\b(bayar_hutang|bayar hutang|bayar utang)\\b/],\n  ['terima_piutang', /\\b(terima_piutang|terima piutang)\\b/],\n];\n\nlet commandIntent = null;\n\nif (/^(laporan|ringkasan|rekap|summary)\\b/.test(lower) || /(hari ini|bulan ini).*(berapa|total|keluar|masuk|untung|rugi)/.test(lower) || /^(utang|hutang|piutang)\\s*(siapa|apa|berapa|list|daftar)?/.test(lower)) {\n  let period = lower.includes('bulan') ? 'month' : 'today';\n  if (/^(utang|hutang|piutang)/.test(lower)) period = 'open_debts';\n  commandIntent = { type: 'query', period, raw: text };\n}\n\nif (/^(hapus|batalkan|delete|batal)\\b/.test(lower) && /(terakhir|transaksi)/.test(lower)) {\n  commandIntent = { type: 'delete_last', raw: text };\n}\n\nif (/^(koreksi|ubah|ganti|edit)\\b/.test(lower)) {\n  const updates = {};\n  const amount = parseAmount(text);\n  if (/nominal|harga|jumlah|jadi|ke/.test(lower) && amount) updates.nominal = amount;\n\n  for (const [category, pattern] of categoryMap) {\n    if (pattern.test(lower)) {\n      updates.category = category;\n      break;\n    }\n  }\n\n  const itemMatch = text.match(/(?:item|barang|keterangan)\\s+(.+)$/i);\n  if (itemMatch) updates.item = itemMatch[1].trim();\n\n  const pihakMatch = text.match(/(?:pihak|toko|orang|ke|dari)\\s+([A-Za-z0-9 .'-]+)$/i);\n  if (pihakMatch && !/nominal|kategori|item|barang/i.test(pihakMatch[1])) updates.pihak = pihakMatch[1].trim();\n\n  commandIntent = { type: 'update_last', updates, raw: text };\n}\n\nif (commandIntent) {\n  return [{\n    json: {\n      ...item,\n      commandIntent,\n      promptInput: text,\n      processingMode: 'command',\n      _skipExtraction: true,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...item,\n    promptInput: text,\n    processingMode: 'text',\n    _skipExtraction: false,\n  }\n}];"
       }
     },
     {
       "id": "node-09-download-audio",
       "name": "Download Audio Media",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1780, 100],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        100
+      ],
       "parameters": {
-        "method": "GET",
-        "url": "=https://graph.facebook.com/v18.0/{{ $json.mediaId }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "fullResponse": true
-            }
-          }
-        }
+        "jsCode": "const item = $input.first().json;\n\nfunction normalizeWahaUrl(url) {\n  if (!url) return null;\n  const value = String(url);\n  if (value.startsWith('/api/')) return `http://localhost:3000${value}`;\n  if (value.startsWith('http://host.docker.internal:3000/')) return value.replace('http://host.docker.internal:3000/', 'http://localhost:3000/');\n  return value;\n}\n\nfunction audioExtension(mime) {\n  const clean = String(mime || '').split(';')[0].trim().toLowerCase();\n  if (clean.includes('mpeg') || clean.includes('mp3')) return 'mp3';\n  if (clean.includes('mp4')) return 'mp4';\n  if (clean.includes('m4a')) return 'm4a';\n  if (clean.includes('wav')) return 'wav';\n  if (clean.includes('webm')) return 'webm';\n  return 'ogg';\n}\n\nasync function getLatestMediaUrl() {\n  if (!item.chatId || !item.messageId) return null;\n\n  const url = `http://localhost:3000/api/default/chats/${encodeURIComponent(item.chatId)}/messages/${encodeURIComponent(item.messageId)}?downloadMedia=true`;\n  try {\n    const msg = await this.helpers.httpRequest({\n      method: 'GET',\n      url,\n      headers: { 'X-Api-Key': 'wariskan123' },\n      json: true,\n      ignoreHttpStatusErrors: true,\n    });\n\n    const refreshed = Array.isArray(msg) ? msg[0] : msg;\n    return refreshed?.media?.url || refreshed?.mediaUrl || null;\n  } catch (err) {\n    console.log(`[Download Audio Media] refresh failed: ${err.message}`);\n    return null;\n  }\n}\n\nlet mediaUrl = normalizeWahaUrl(item.mediaUrl || item.mediaId || item.media?.url || item.media?.link);\nif (!mediaUrl) mediaUrl = normalizeWahaUrl(await getLatestMediaUrl.call(this));\n\nif (!mediaUrl) {\n  return [{\n    json: {\n      ...item,\n      audioDownloadFailed: true,\n      audioDownloadReason: item.mediaError || 'WAHA received an audio message, but did not provide media.url yet.',\n      processingMode: 'audio',\n      transcript: '',\n    }\n  }];\n}\n\ntry {\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: mediaUrl,\n    headers: { 'X-Api-Key': 'wariskan123' },\n    encoding: 'arraybuffer',\n    json: false,\n  });\n\n  const buffer = Buffer.isBuffer(response) ? response : Buffer.from(response);\n  const rawMime = item.mediaMimeType || 'audio/ogg; codecs=opus';\n  const mime = String(rawMime).split(';')[0].trim() || 'audio/ogg';\n  const fileName = `wariskan-voice.${audioExtension(rawMime)}`;\n\n  return [{\n    json: {\n      ...item,\n      mediaUrl,\n      mediaId: mediaUrl,\n      audioBase64: buffer.toString('base64'),\n      audioMimeType: rawMime,\n      processingMode: 'audio',\n    },\n    binary: {\n      audio: {\n        data: buffer.toString('base64'),\n        mimeType: mime,\n        fileName,\n      }\n    }\n  }];\n} catch (err) {\n  return [{\n    json: {\n      ...item,\n      mediaUrl,\n      mediaId: mediaUrl,\n      audioDownloadFailed: true,\n      audioDownloadReason: err.message,\n      processingMode: 'audio',\n      transcript: '',\n    }\n  }];\n}"
       }
     },
     {
       "id": "node-10-download-image",
       "name": "Download Image Media",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [1780, 280],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1780,
+        280
+      ],
       "parameters": {
-        "method": "GET",
-        "url": "=https://graph.facebook.com/v18.0/{{ $json.mediaId }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "fullResponse": true
-            }
-          }
-        }
+        "jsCode": "const item = $input.first().json;\n\nfunction normalizeWahaUrl(url) {\n  if (!url) return null;\n  const value = String(url);\n  if (value.startsWith('/api/')) return `http://localhost:3000${value}`;\n  if (value.startsWith('http://host.docker.internal:3000/')) return value.replace('http://host.docker.internal:3000/', 'http://localhost:3000/');\n  return value;\n}\n\nasync function getLatestMediaUrl() {\n  if (!item.chatId || !item.messageId) return null;\n\n  const url = `http://localhost:3000/api/default/chats/${encodeURIComponent(item.chatId)}/messages/${encodeURIComponent(item.messageId)}?downloadMedia=true`;\n  try {\n    const msg = await this.helpers.httpRequest({\n      method: 'GET',\n      url,\n      headers: { 'X-Api-Key': 'wariskan123' },\n      json: true,\n      ignoreHttpStatusErrors: true,\n    });\n\n    const refreshed = Array.isArray(msg) ? msg[0] : msg;\n    return refreshed?.media?.url || refreshed?.mediaUrl || null;\n  } catch (err) {\n    console.log(`[Download Image Media] refresh failed: ${err.message}`);\n    return null;\n  }\n}\n\nlet mediaUrl = normalizeWahaUrl(item.mediaUrl || item.mediaId || item.media?.url || item.media?.link);\nif (!mediaUrl) {\n  mediaUrl = normalizeWahaUrl(await getLatestMediaUrl.call(this));\n}\n\nif (!mediaUrl) {\n  return [{\n    json: {\n      ...item,\n      imageDownloadFailed: true,\n      imageDownloadReason: item.mediaError || 'WAHA received an image message, but did not provide media.url yet.',\n      processingMode: 'image',\n      textContent: item.textContent || 'Foto tidak bisa diunduh dari WAHA. Minta user kirim ulang foto yang sama.',\n    }\n  }];\n}\n\ntry {\n  const response = await this.helpers.httpRequest({\n    method: 'GET',\n    url: mediaUrl,\n    headers: { 'X-Api-Key': 'wariskan123' },\n    encoding: 'arraybuffer',\n    json: false,\n  });\n\n  const imageBase64 = Buffer.isBuffer(response)\n    ? response.toString('base64')\n    : Buffer.from(response).toString('base64');\n\n  return [{\n    json: {\n      ...item,\n      mediaUrl,\n      mediaId: mediaUrl,\n      imageBase64,\n      mediaMimeType: item.mediaMimeType || 'image/jpeg',\n      processingMode: 'image',\n    }\n  }];\n} catch (err) {\n  return [{\n    json: {\n      ...item,\n      mediaUrl,\n      mediaId: mediaUrl,\n      imageDownloadFailed: true,\n      imageDownloadReason: err.message,\n      processingMode: 'image',\n      textContent: item.textContent || 'Foto tidak bisa diunduh dari WAHA. Minta user kirim ulang foto yang sama.',\n    }\n  }];\n}"
       }
     },
     {
@@ -276,9 +296,12 @@
       "name": "Send Unsupported Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1780, 460],
+      "position": [
+        1780,
+        460
+      ],
       "parameters": {
-        "jsCode": "const { senderPhone, messageType } = $input.first().json;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    to:        senderPhone,\n    replyText: `Maaf kak, saya belum bisa baca pesan ${messageType ?? 'jenis ini'} 🙏\\n\\nSilakan kirim:\\n📝 Pesan teks (contoh: \"jual 350rb\")\\n🎤 Pesan suara\\n📷 Foto struk/nota`,\n  }\n}];"
+        "jsCode": "const { messageType } = $input.first().json;\n\nreturn [{\n  json: {\n    ...($input.first().json),\n    to: $input.first().json.chatId || $input.first().json.replyTo || $input.first().json.senderPhone,\n    replyText: `Maaf kak, saya belum bisa baca pesan ${messageType ?? 'jenis ini'}.\\n\\nSilakan kirim:\\n- Pesan teks, contoh: \"jual 350rb\"\\n- Pesan suara\\n- Foto struk/nota`,\n  }\n}];"
       }
     },
     {
@@ -286,7 +309,10 @@
       "name": "Whisper STT",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [2040, 100],
+      "position": [
+        2040,
+        100
+      ],
       "parameters": {
         "method": "POST",
         "url": "https://api.openai.com/v1/audio/transcriptions",
@@ -295,7 +321,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "=Bearer {{ $env.OPENAI_API_KEY }}"
+              "value": "={{ 'Bearer ' + $env.OPENAI_API_KEY }}"
             }
           ]
         },
@@ -304,52 +330,32 @@
         "bodyParameters": {
           "parameters": [
             {
+              "parameterType": "formData",
               "name": "model",
-              "value": "whisper-1"
+              "value": "={{ $env.OPENAI_TRANSCRIBE_MODEL ?? 'gpt-4o-mini-transcribe' }}"
             },
             {
+              "parameterType": "formData",
               "name": "language",
               "value": "id"
             },
             {
+              "parameterType": "formData",
               "name": "response_format",
               "value": "json"
+            },
+            {
+              "parameterType": "formData",
+              "name": "prompt",
+              "value": "Audio WhatsApp berbahasa Indonesia tentang catatan keuangan warung/toko. Pertahankan nominal seperti 50rb, 50 ribu, 50.000, 1,5jt, 1 juta, nama barang, nama orang, dan konteks jual/beli/hutang/piutang."
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "audio"
             }
           ]
         },
-        "options": {}
-      },
-      "notes": "Builder 2: tambahkan 'file' parameter dari Download Audio Media output. Gunakan binary data dari response Download Audio."
-    },
-    {
-      "id": "node-13-claude-extract",
-      "name": "Claude Extract",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [2040, -60],
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.ANTHROPIC_API_KEY }}"
-            },
-            {
-              "name": "anthropic-version",
-              "value": "2023-06-01"
-            },
-            {
-              "name": "content-type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-3-5-haiku-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER — Builder 1: paste isi prompts/extraction-system-prompt.md di sini\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify($json.promptInput ?? $json.transcript ?? '') }}\n    }\n  ]\n}",
         "options": {
           "response": {
             "response": {
@@ -357,45 +363,34 @@
             }
           }
         }
+      },
+      "notes": "Native n8n HTTP multipart upload to OpenAI. Input binary field: audio."
+    },
+    {
+      "id": "node-13-claude-extract",
+      "name": "Claude Extract",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        -60
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n\nif (item._skipExtraction || item.audioTranscriptionFailed) {\n  return [{\n    json: {\n      ...item,\n      content: [{ text: JSON.stringify({ category: 'unclear', nominal: 0, item: null, pihak: null, tanggal: null, jatuh_tempo: null, confidence: 'low' }) }],\n      _usedFallbackExtraction: true,\n    }\n  }];\n}\n\nconst inputText = item.promptInput || item.transcript || item.textContent || '';\nif (!inputText.trim()) {\n  return [{\n    json: {\n      ...item,\n      content: [{ text: JSON.stringify({ category: 'unclear', nominal: 0, item: null, pihak: null, tanggal: null, jatuh_tempo: null, confidence: 'low' }) }],\n      _usedFallbackExtraction: true,\n    }\n  }];\n}\n\nconst system = [\n  'Kamu adalah AI pencatat keuangan warung/toko kecil Indonesia.',\n  'Ekstrak SATU transaksi utama dari pesan user.',\n  'Kembalikan HANYA JSON valid tanpa markdown dan tanpa teks tambahan.',\n  'Format: {\"category\":\"pengeluaran\",\"nominal\":0,\"item\":null,\"pihak\":null,\"tanggal\":null,\"jatuh_tempo\":null,\"confidence\":\"high\"}',\n  'Kategori valid: pemasukan, pengeluaran, hutang, piutang, bayar_hutang, terima_piutang, unclear.',\n  'Aturan umum: jual/terima/dapat/setoran/omset = pemasukan. beli/bayar/belanja/modal/ongkos/sewa = pengeluaran.',\n  'Kalimat orang lain berutang ke user = piutang. User berutang ke orang lain = hutang.',\n  'Nominal harus angka rupiah penuh TANPA titik/koma pemisah ribuan. 51 ribu = 51000, 350rb = 350000, 50.000 = 50000, 1,5jt = 1500000, 1.2 juta = 1200000, 2 juta = 2000000.',\n  'item ringkas dan natural. pihak isi nama orang/toko jika disebut.',\n  'Jika tidak yakin, category unclear, nominal 0, confidence low.'\n].join('\\n');\n\nconst models = [\n  $env.ANTHROPIC_EXTRACT_MODEL,\n  $env.ANTHROPIC_MODEL,\n  'claude-3-5-haiku-20241022',\n  'claude-sonnet-4-20250514',\n].filter(Boolean);\n\nlet lastResponse = null;\nlet usedModel = null;\nfor (const model of [...new Set(models)]) {\n  const response = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.anthropic.com/v1/messages',\n    headers: {\n      'x-api-key': $env.ANTHROPIC_API_KEY,\n      'anthropic-version': '2023-06-01',\n      'content-type': 'application/json',\n    },\n    body: {\n      model,\n      max_tokens: 500,\n      system,\n      messages: [{ role: 'user', content: inputText }],\n    },\n    json: true,\n    ignoreHttpStatusErrors: true,\n  });\n\n  lastResponse = response;\n  if (!response?.error) {\n    usedModel = model;\n    break;\n  }\n\n  const errorType = response.error?.type ?? response.type;\n  if (errorType !== 'not_found_error') break;\n}\n\nif (lastResponse?.error) {\n  return [{\n    json: {\n      ...item,\n      ...lastResponse,\n      message: lastResponse,\n      aiExtractFailed: true,\n      aiExtractError: lastResponse.error?.message || 'Anthropic extraction failed',\n      ai_model_version: usedModel || 'anthropic-extract-unavailable',\n      _usedFallbackExtraction: true,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...item,\n    ...lastResponse,\n    message: lastResponse,\n    ai_model_version: usedModel,\n  }\n}];"
       },
       "notes": "Builder 1: (1) ganti system prompt, (2) parse $json.content[0].text sebagai JSON di node Validate JSON setelahnya."
     },
     {
       "id": "node-14-claude-vision",
       "name": "Claude Vision",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [2040, 280],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2040,
+        280
+      ],
       "parameters": {
-        "method": "POST",
-        "url": "https://api.anthropic.com/v1/messages",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.ANTHROPIC_API_KEY }}"
-            },
-            {
-              "name": "anthropic-version",
-              "value": "2023-06-01"
-            },
-            {
-              "name": "content-type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"claude-3-5-sonnet-20241022\",\n  \"max_tokens\": 512,\n  \"system\": \"PLACEHOLDER — Builder 2: paste vision system prompt dari prompts/vision-system-prompt.md\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"image\",\n          \"source\": {\n            \"type\": \"url\",\n            \"url\": \"PLACEHOLDER — Builder 2: isi dengan URL gambar dari Download Image Media\"\n          }\n        },\n        {\n          \"type\": \"text\",\n          \"text\": \"Tolong ekstrak semua transaksi dari struk ini.\"\n        }\n      ]\n    }\n  ]\n}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
+        "jsCode": "const item = $input.first().json;\n\nif (item.imageDownloadFailed || !item.imageBase64) {\n  return [{\n    json: {\n      ...item,\n      content: [{ text: JSON.stringify({ category: 'unclear', nominal: 0, item: null, pihak: null, tanggal: null, jatuh_tempo: null, confidence: 'low' }) }],\n      ai_model_version: 'media-download-fallback',\n      _usedFallbackExtraction: true,\n    }\n  }];\n}\n\nconst system = [\n  'Kamu adalah AI pencatat keuangan warung/toko kecil Indonesia.',\n  'Tugasmu membaca foto struk, nota, bukti transfer, atau catatan belanja dari WhatsApp.',\n  'Ekstrak SATU transaksi utama yang paling jelas dari gambar.',\n  'Kembalikan HANYA JSON valid tanpa markdown dan tanpa teks tambahan.',\n  'Format: {\"category\":\"pengeluaran\",\"nominal\":0,\"item\":null,\"pihak\":null,\"tanggal\":null,\"jatuh_tempo\":null,\"confidence\":\"high\"}',\n  'Kategori valid: pemasukan, pengeluaran, hutang, piutang, bayar_hutang, terima_piutang, unclear.',\n  'Untuk struk belanja, default category adalah pengeluaran.',\n  'nominal harus angka rupiah penuh TANPA titik/koma pemisah ribuan. Baca 51.000 sebagai 51000, 1.250.000 sebagai 1250000, 1,5jt sebagai 1500000. Gunakan total akhir kalau terlihat, bukan subtotal per item.',\n  'item berisi ringkasan belanja, misalnya \"Belanja sembako\" atau nama merchant/item utama.',\n  'pihak berisi merchant/toko/pengirim jika terlihat.',\n  'Jika gambar tidak terbaca, category unclear, nominal 0, confidence low.'\n].join('\\n');\n\nconst models = [\n  $env.ANTHROPIC_VISION_MODEL,\n  $env.ANTHROPIC_MODEL,\n  'claude-sonnet-4-20250514',\n  'claude-3-7-sonnet-20250219',\n  'claude-3-5-haiku-20241022',\n].filter(Boolean);\n\nlet lastResponse = null;\nlet usedModel = null;\n\nfor (const model of [...new Set(models)]) {\n  const response = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.anthropic.com/v1/messages',\n    headers: {\n      'x-api-key': $env.ANTHROPIC_API_KEY,\n      'anthropic-version': '2023-06-01',\n      'content-type': 'application/json',\n    },\n    body: {\n      model,\n      max_tokens: 700,\n      system,\n      messages: [\n        {\n          role: 'user',\n          content: [\n            {\n              type: 'image',\n              source: {\n                type: 'base64',\n                media_type: item.mediaMimeType || 'image/jpeg',\n                data: item.imageBase64,\n              },\n            },\n            {\n              type: 'text',\n              text: item.textContent\n                ? `Caption user: ${item.textContent}\\n\\nEkstrak transaksi dari gambar ini.`\n                : 'Ekstrak transaksi dari gambar ini.',\n            },\n          ],\n        },\n      ],\n    },\n    json: true,\n    ignoreHttpStatusErrors: true,\n  });\n\n  lastResponse = response;\n  if (!response?.error) {\n    usedModel = model;\n    break;\n  }\n\n  const errorType = response.error?.type ?? response.type;\n  if (errorType !== 'not_found_error') {\n    break;\n  }\n}\n\nif (lastResponse?.error) {\n  return [{\n    json: {\n      ...item,\n      ...lastResponse,\n      message: lastResponse,\n      aiVisionFailed: true,\n      aiVisionError: lastResponse.error?.message ?? 'Anthropic Vision request failed',\n      ai_model_version: usedModel ?? 'anthropic-vision-unavailable',\n      _usedFallbackExtraction: true,\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...item,\n    ...lastResponse,\n    message: lastResponse,\n    ai_model_version: usedModel,\n  }\n}];"
       }
     },
     {
@@ -403,96 +398,53 @@
       "name": "Validate JSON",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2300, -60],
+      "position": [
+        2300,
+        -60
+      ],
       "parameters": {
-        "jsCode": "// ── Validate Claude's extraction output ───────────────────────\n// Builder 1: update this after Claude Extract node is implemented.\n// Expected: Claude returns JSON string inside content[0].text\n\nconst data = $input.first().json;\n\n// Skip if marked (status updates, unsupported types)\nif (data._skipExtraction) {\n  return [{ json: { ...data, _valid: false, _reason: 'Extraction skipped' } }];\n}\n\n// Parse Claude response\nlet extracted = null;\ntry {\n  // Claude returns: { content: [{ type: 'text', text: '{\"category\":...}' }] }\n  const claudeText = data.content?.[0]?.text ?? data.text ?? null;\n  if (claudeText) {\n    extracted = JSON.parse(claudeText);\n  }\n} catch (err) {\n  return [{ json: { ...data, _valid: false, _reason: `JSON parse error: ${err.message}`, _rawClaude: data.content?.[0]?.text } }];\n}\n\nif (!extracted) {\n  return [{ json: { ...data, _valid: false, _reason: 'No extraction from Claude — check Claude Extract node' } }];\n}\n\n// Minimum required fields\nconst required = ['category', 'nominal'];\nconst missing  = required.filter(k => extracted[k] == null);\nif (missing.length > 0) {\n  return [{ json: { ...data, _valid: false, _reason: `Missing fields: ${missing.join(', ')}`, extractedData: extracted } }];\n}\n\n// Valid categories per Supabase schema\nconst validCategories = ['pemasukan','pengeluaran','hutang','piutang','bayar_hutang','terima_piutang','unclear'];\nif (!validCategories.includes(extracted.category)) {\n  extracted.category = 'unclear';\n}\n\nreturn [{ json: { ...data, extractedData: extracted, _valid: true } }];"
+        "jsCode": "const input = $input.first().json;\nlet base = {};\ntry { base = $('Handle Text').first().json; } catch (_) {}\ntry { base = { ...$('Parse WhatsApp Payload').first().json, ...base }; } catch (_) {}\nconst data = { ...base, ...input };\n\nif (data._skipExtraction) {\n  return [{ json: { ...data, _valid: false, _reason: 'Extraction skipped' } }];\n}\n\nconst validCategories = ['pemasukan', 'pengeluaran', 'hutang', 'piutang', 'bayar_hutang', 'terima_piutang', 'unclear'];\nconst rawText = data.textContent || data.promptInput || data.transcript || '';\n\nfunction parseMoneyCandidate(raw, unit = '') {\n  if (raw == null || raw === '') return 0;\n  let s = String(raw).trim().toLowerCase();\n  unit = String(unit || '').toLowerCase();\n\n  s = s.replace(/^rp\\s*/i, '').replace(/\\s+/g, '');\n  s = s.replace(/[^0-9.,]/g, '');\n  if (!s) return 0;\n\n  const hasUnit = /(rb|ribu|k|jt|juta|mio|milyar|miliar|m)/i.test(unit);\n  let value = 0;\n\n  if (hasUnit) {\n    // With explicit units, one separator is decimal: 1,5jt / 1.5 juta.\n    const normalized = s.replace(',', '.');\n    value = Number(normalized.replace(/\\.(?=.*\\.)/g, '')) || 0;\n  } else if (/^\\d{1,3}([.,]\\d{3})+$/.test(s)) {\n    // 50.000 / 1.250.000 / 50,000 are thousands separators.\n    value = Number(s.replace(/[.,]/g, '')) || 0;\n  } else if (/^\\d+[.,]\\d{1,2}$/.test(s)) {\n    // Ambiguous decimal without unit, keep numeric value first.\n    value = Number(s.replace(',', '.')) || 0;\n  } else {\n    value = Number(s.replace(/[.,]/g, '')) || 0;\n  }\n\n  if (/^(jt|juta|mio)$/i.test(unit)) value *= 1000000;\n  else if (/^(milyar|miliar|m)$/i.test(unit)) value *= 1000000000;\n  else if (/^(rb|ribu|k)$/i.test(unit)) value *= 1000;\n  else if (value > 0 && value < 1000) value *= 1000;\n\n  return Math.round(value);\n}\n\nfunction parseMoneyFromText(text) {\n  const source = String(text || '').toLowerCase();\n  if (!source.trim()) return 0;\n\n  const candidates = [];\n  const pattern = /(?:rp\\s*)?(\\d+(?:[.,]\\d{3})+(?:[.,]\\d+)?|\\d+(?:[.,]\\d+)?)(?:\\s*)(rb|ribu|k|jt|juta|mio|milyar|miliar|m)?\\b/gi;\n  let match;\n  while ((match = pattern.exec(source)) !== null) {\n    const before = source.slice(Math.max(0, match.index - 12), match.index);\n    const after = source.slice(pattern.lastIndex, pattern.lastIndex + 14);\n\n    // Avoid common non-money contexts if there is no explicit unit/currency.\n    const hasMoneyHint = Boolean(match[2]) || /rp\\s*$/i.test(before) || /harga|total|nominal|bayar|jual|jualan|beli|belanja|utang|hutang|piutang|masuk|keluar|omset|setoran/i.test(source);\n    if (!hasMoneyHint) continue;\n    if (!match[2] && /\\b(kg|gram|gr|pcs|buah|liter|ltr|l|botol|bungkus|pack|dus|tanggal|tgl|jam)\\b/i.test(after)) continue;\n\n    const amount = parseMoneyCandidate(match[1], match[2]);\n    if (amount > 0) candidates.push(amount);\n  }\n\n  if (!candidates.length) return 0;\n  return Math.max(...candidates);\n}\n\nfunction normalizeNominal(value, sourceText) {\n  const fromValue = typeof value === 'string'\n    ? parseMoneyCandidate(value, '')\n    : Math.round(Number(value || 0));\n  const fromText = parseMoneyFromText(sourceText);\n\n  // Prefer source text when it clearly finds a larger rupiah value. This fixes JSON number 50.000 parsed as 50.\n  if (fromText > fromValue) return fromText;\n  if (fromValue > 0 && fromValue < 1000 && fromText === 0) return fromValue * 1000;\n  return fromValue || fromText || 0;\n}\n\nfunction buildFallback(text) {\n  const lower = String(text).toLowerCase();\n  const nominal = parseMoneyFromText(lower);\n\n  let category = 'unclear';\n  if (/\\b(jual|jualan|terima|dapat|dapet|masuk|pemasukan|setoran|omset|pendapatan)\\b/i.test(lower)) category = 'pemasukan';\n  else if (/(udah|sudah|telah).*(bayar|balik|lunasin).*(utang|hutang)|dibayar.*(utang|hutang)/i.test(lower)) category = 'terima_piutang';\n  else if (/(si|pak|bu|mbak|mas)\\s+\\w+.*(minjam|minjem|ngutang|utang|hutang)|dipinjam|ngasih.*pinjam|pinjamin/i.test(lower)) category = 'piutang';\n  else if (/(bayar|nyicil|lunas).*(hutang|utang)/i.test(lower)) category = 'bayar_hutang';\n  else if (/\\b(hutang|utang|ngutang|pinjam.*dari|minjam.*dari|minjem.*dari)\\b/i.test(lower)) category = 'hutang';\n  else if (/\\b(beli|bayar|keluar|pengeluaran|belanja|modal|kasbon|ongkos|sewa)\\b/i.test(lower)) category = 'pengeluaran';\n\n  let item = null;\n  const itemMatch = lower.match(/(?:beli|jual|jualan|bayar)\\s+([^0-9]+)/i);\n  if (itemMatch) item = itemMatch[1].replace(/\\b(rb|ribu|k|jt|juta|mio|milyar|miliar|rp)\\b/gi, '').trim() || null;\n\n  return { category, nominal, item, pihak: null, tanggal: null, jatuh_tempo: null, confidence: 'low' };\n}\n\nfunction parseJsonText(text) {\n  if (!text || typeof text !== 'string') return null;\n  const match = text.match(/\\{[\\s\\S]*\\}/);\n  if (!match) return null;\n  return JSON.parse(match[0]);\n}\n\nlet extracted = null;\ntry {\n  const text = data.content?.[0]?.text\n    ?? data.message?.content?.[0]?.text\n    ?? data.body?.content?.[0]?.text\n    ?? data.text\n    ?? null;\n  extracted = parseJsonText(text);\n} catch (err) {\n  data._rawClaudeParseError = err.message;\n}\n\nif (!extracted || extracted.nominal == null || !extracted.category) {\n  extracted = buildFallback(rawText);\n  data._usedFallbackExtraction = true;\n}\n\nif (!validCategories.includes(extracted.category)) extracted.category = 'unclear';\nextracted.nominal = normalizeNominal(extracted.nominal, rawText);\nif (!extracted.confidence) extracted.confidence = data._usedFallbackExtraction ? 'low' : 'medium';\n\ndata.nominalNormalizationDebug = {\n  rawNominal: extracted.nominal,\n  sourceText: rawText,\n  parsedFromText: parseMoneyFromText(rawText),\n};\n\nreturn [{ json: { ...data, extractedData: extracted, _valid: true } }];"
       }
     },
     {
       "id": "node-16-save-supabase",
       "name": "Save to Supabase",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [2560, -60],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2560,
+        -60
+      ],
       "parameters": {
-        "method": "POST",
-        "url": "={{ $env.SUPABASE_URL }}/rest/v1/transactions",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "apikey",
-              "value": "={{ $env.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.SUPABASE_SERVICE_KEY }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "Prefer",
-              "value": "return=representation"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"user_id\":        {{ JSON.stringify($json.user?.id ?? null) }},\n  \"raw_input\":      {{ JSON.stringify($json.textContent ?? $json.transcript ?? '') }},\n  \"input_type\":     {{ JSON.stringify($json.messageType === 'audio' ? 'voice' : ($json.messageType === 'image' ? 'image' : 'text')) }},\n  \"transcript\":     {{ JSON.stringify($json.transcript ?? null) }},\n  \"category\":       {{ JSON.stringify($json.extractedData?.category ?? 'unclear') }},\n  \"nominal\":        {{ $json.extractedData?.nominal ?? 0 }},\n  \"pihak\":          {{ JSON.stringify($json.extractedData?.pihak ?? null) }},\n  \"item\":           {{ JSON.stringify($json.extractedData?.item ?? null) }},\n  \"tanggal\":        {{ JSON.stringify($json.extractedData?.tanggal ?? new Date().toISOString().split('T')[0]) }},\n  \"jatuh_tempo\":    {{ JSON.stringify($json.extractedData?.jatuh_tempo ?? null) }},\n  \"status\":         \"aktif\",\n  \"confidence\":     {{ JSON.stringify($json.extractedData?.confidence ?? 'low') }},\n  \"ai_model_version\": \"claude-3-5-haiku-20241022\"\n}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
+        "jsCode": "const input = $input.first().json;\nlet data = input;\ntry { data = { ...$('Validate JSON').first().json, ...input }; } catch (_) {}\n\nconst BASE = $env.SUPABASE_URL;\nconst KEY = $env.SUPABASE_SERVICE_KEY;\nif (!BASE || !KEY) throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_KEY');\n\nconst headers = {\n  apikey: KEY,\n  Authorization: `Bearer ${KEY}`,\n  'Content-Type': 'application/json',\n};\n\nconst httpRequest = this.helpers.httpRequest.bind(this.helpers);\n\nconst money = (value) => `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`;\nconst userId = data.user?.id;\nconst messageId = data.messageId || null;\n\nasync function getRows(path) {\n  return await httpRequest({ method: 'GET', url: `${BASE}/rest/v1/${path}`, headers, json: true, ignoreHttpStatusErrors: true });\n}\n\nasync function patchRows(path, body) {\n  return await httpRequest({ method: 'PATCH', url: `${BASE}/rest/v1/${path}`, headers: { ...headers, Prefer: 'return=representation' }, body, json: true, ignoreHttpStatusErrors: true });\n}\n\nasync function cancelPendingReminders(transactionId) {\n  if (!transactionId) return null;\n  return await patchRows(`reminders?transaction_id=eq.${transactionId}&status=eq.pending`, { status: 'cancelled' });\n}\n\nasync function markIncoming(status, processed = true, error = null) {\n  if (!messageId) return;\n  try {\n    await patchRows(`incoming_messages?whatsapp_message_id=eq.${encodeURIComponent(messageId)}`, { status, processed, processing_error: error });\n  } catch (err) {\n    console.log(`[Save to Supabase] incoming update skipped: ${err.message}`);\n  }\n}\n\nfunction buildSummary(rows, today) {\n  const summary = rows.reduce((acc, row) => {\n    const amount = Number(row.nominal || 0);\n    const isToday = row.tanggal === today;\n    if (row.category === 'pemasukan' || row.category === 'terima_piutang') {\n      acc.monthIn += amount;\n      if (isToday) acc.todayIn += amount;\n    }\n    if (row.category === 'pengeluaran' || row.category === 'bayar_hutang') {\n      acc.monthOut += amount;\n      if (isToday) acc.todayOut += amount;\n    }\n    if (row.category === 'hutang' && row.status === 'aktif') acc.hutang += amount;\n    if (row.category === 'piutang' && row.status === 'aktif') acc.piutang += amount;\n    return acc;\n  }, { monthIn: 0, monthOut: 0, todayIn: 0, todayOut: 0, hutang: 0, piutang: 0 });\n  summary.monthNet = summary.monthIn - summary.monthOut;\n  summary.todayNet = summary.todayIn - summary.todayOut;\n  return summary;\n}\n\nasync function getLastTransaction() {\n  const rows = await getRows(`transactions?user_id=eq.${userId}&status=eq.aktif&order=created_at.desc&limit=1&select=*`);\n  return Array.isArray(rows) ? rows[0] : null;\n}\n\nif (!userId) throw new Error('Missing user id');\n\nif (data.commandIntent?.type === 'query') {\n  const today = new Date().toISOString().slice(0, 10);\n  const startMonth = new Date();\n  startMonth.setDate(1);\n  const monthDate = startMonth.toISOString().slice(0, 10);\n  const rows = await getRows(`transactions?user_id=eq.${userId}&tanggal=gte.${monthDate}&status=eq.aktif&select=category,nominal,tanggal,pihak,item,status`);\n  const summary = Array.isArray(rows) ? buildSummary(rows, today) : null;\n\n  const debtRows = await getRows(`transactions?user_id=eq.${userId}&status=eq.aktif&category=in.(hutang,piutang)&select=category,nominal,pihak,item,tanggal&order=tanggal.desc&limit=10`);\n  await markIncoming('processed');\n  return [{ json: { ...data, skipTransactionSave: true, commandResult: { type: 'query', summary, debtRows: Array.isArray(debtRows) ? debtRows : [] } } }];\n}\n\nif (data.commandIntent?.type === 'delete_last') {\n  const last = await getLastTransaction.call(this);\n  if (!last) {\n    await markIncoming('processed');\n    return [{ json: { ...data, skipTransactionSave: true, commandResult: { type: 'delete_last', notFound: true } } }];\n  }\n  const updated = await patchRows(`transactions?id=eq.${last.id}`, { status: 'dibatalkan' });\n  await cancelPendingReminders(last.id);\n  await markIncoming('processed');\n  return [{ json: { ...data, skipTransactionSave: true, commandResult: { type: 'delete_last', transaction: Array.isArray(updated) ? updated[0] : last } } }];\n}\n\nif (data.commandIntent?.type === 'update_last') {\n  const updates = data.commandIntent.updates || {};\n  const allowed = {};\n  for (const key of ['nominal', 'category', 'item', 'pihak', 'tanggal', 'jatuh_tempo']) {\n    if (updates[key] !== undefined && updates[key] !== null && updates[key] !== '') allowed[key] = updates[key];\n  }\n  const last = await getLastTransaction.call(this);\n  if (!last || Object.keys(allowed).length === 0) {\n    await markIncoming('processed');\n    return [{ json: { ...data, skipTransactionSave: true, commandResult: { type: 'update_last', notFound: !last, noUpdates: Object.keys(allowed).length === 0 } } }];\n  }\n  const updated = await patchRows(`transactions?id=eq.${last.id}`, allowed);\n  if (allowed.category !== undefined || allowed.jatuh_tempo !== undefined) {\n    await cancelPendingReminders(last.id);\n  }\n  await markIncoming('processed');\n  return [{ json: { ...data, skipTransactionSave: true, commandResult: { type: 'update_last', transaction: Array.isArray(updated) ? updated[0] : last, updates: allowed } } }];\n}\n\nif (data.imageDownloadFailed || data.audioDownloadFailed || data.audioTranscriptionFailed || data.aiVisionFailed) {\n  await markIncoming('failed', true, data.imageDownloadReason || data.audioTranscriptionError || data.audioDownloadReason || data.aiVisionError || 'processing failed');\n  return [{ json: { ...data, skipTransactionSave: true } }];\n}\n\nif (messageId) {\n  const existing = await getRows(`transactions?source_message_id=eq.${encodeURIComponent(messageId)}&select=*`);\n  if (Array.isArray(existing) && existing.length > 0) {\n    await markIncoming('processed');\n    return [{ json: { ...data, duplicateTransaction: true, savedTransaction: existing[0], saveResult: existing[0] } }];\n  }\n}\n\nconst ext = data.extractedData ?? {};\nconst body = {\n  user_id: userId,\n  raw_input: data.textContent || data.transcript || data.mediaUrl || data.mediaId || '',\n  input_type: data.messageType === 'audio' ? 'voice' : (data.messageType === 'image' ? 'image' : 'text'),\n  transcript: data.transcript || null,\n  category: ext.category || 'unclear',\n  nominal: Number(ext.nominal || 0),\n  pihak: ext.pihak || null,\n  item: ext.item || null,\n  tanggal: ext.tanggal || new Date().toISOString().slice(0, 10),\n  jatuh_tempo: ext.jatuh_tempo || null,\n  status: 'aktif',\n  confidence: ext.confidence || 'low',\n  ai_model_version: data.ai_model_version || (data.messageType === 'image' ? 'claude-sonnet-4-20250514' : 'claude-3-5-haiku-20241022'),\n  source_message_id: messageId,\n  source_chat_id: data.chatId || data.replyTo || null,\n};\n\nconst created = await httpRequest({\n  method: 'POST',\n  url: `${BASE}/rest/v1/transactions?on_conflict=source_message_id`,\n  headers: { ...headers, Prefer: 'resolution=ignore-duplicates,return=representation' },\n  body,\n  json: true,\n  ignoreHttpStatusErrors: true,\n});\n\nlet saved = Array.isArray(created) ? created[0] : created;\nlet saveError = null;\nif (created?.message || created?.error || created?.hint || created?.code) {\n  saveError = created.message || created.error || JSON.stringify(created);\n}\nif (!saved?.id && messageId && !saveError) {\n  const retry = await getRows(`transactions?source_message_id=eq.${encodeURIComponent(messageId)}&select=*`);\n  saved = Array.isArray(retry) ? retry[0] : retry;\n}\nif (!saved?.id && !saveError) saveError = 'transaction save failed';\n\nawait markIncoming(saved?.id ? 'processed' : 'failed', true, saved?.id ? null : saveError);\n\nreturn [{\n  json: {\n    ...data,\n    savedTransaction: saved?.id ? saved : null,\n    saveResult: saved?.id ? saved : null,\n    saveFailed: !saved?.id,\n    saveError,\n    duplicateTransaction: false,\n  }\n}];"
       }
     },
     {
       "id": "node-17-save-sheets",
       "name": "Save to Google Sheets",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4,
-      "position": [2820, -60],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        -60
+      ],
       "parameters": {
-        "method": "POST",
-        "url": "={{ $env.HELPER_API_URL ?? 'http://localhost:3000' }}/api/sheets/append",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            },
-            {
-              "name": "x-api-key",
-              "value": "={{ $env.HELPER_API_KEY ?? 'dev' }}"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"sheetId\":     {{ JSON.stringify($json.user?.sheet_id ?? null) }},\n  \"transaction\": {{ JSON.stringify($json.extractedData ?? {}) }}\n}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": true
-            }
-          }
-        }
+        "jsCode": "const data = $input.first().json;\nconst tx = data.savedTransaction || data.saveResult || null;\n\nconst commandTx = data.commandResult?.transaction || null;\n\nasync function syncSheetUpdate(transaction) {\n  const baseUrl = ($env.HELPER_API_URL || 'http://localhost:3001').replace(/\\/$/, '');\n  const apiKey = $env.HELPER_API_KEY || 'dev';\n  const headers = {\n    'Content-Type': 'application/json',\n    'x-api-key': apiKey,\n  };\n\n  const user = data.user || {};\n  const sheetId = user.sheet_id || user.sheetId || data.sheetId || null;\n  if (!sheetId || !transaction?.id) {\n    return { sheetSynced: false, sheetSyncSkipped: true, sheetSyncReason: 'missing_sheet_or_transaction' };\n  }\n\n  const result = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${baseUrl}/api/sheets/update`,\n    headers,\n    body: {\n      sheetId,\n      sheetTab: user.sheet_tab || null,\n      user,\n      transaction: {\n        id: transaction.id,\n        tanggal: transaction.tanggal,\n        kategori: transaction.category,\n        nominal: transaction.nominal,\n        pihak: transaction.pihak,\n        item: transaction.item,\n        status: transaction.status,\n        jatuh_tempo: transaction.jatuh_tempo,\n        created_at: transaction.created_at,\n      },\n    },\n    json: true,\n    ignoreHttpStatusErrors: true,\n  });\n\n  return {\n    sheetResult: result,\n    sheetSynced: result?.success === true && result?.data?.updated === true,\n    sheetSyncSkipped: result?.data?.updated === false || result?.skipped === true,\n    sheetSyncError: result?.error || null,\n    sheetTab: result?.data?.sheetTab || user.sheet_tab || null,\n  };\n}\n\nif (['delete_last', 'update_last'].includes(data.commandResult?.type) && commandTx?.id) {\n  try {\n    const sync = await syncSheetUpdate.call(this, commandTx);\n    return [{ json: { ...data, ...sync } }];\n  } catch (err) {\n    return [{ json: { ...data, sheetSynced: false, sheetSyncError: err.message } }];\n  }\n}\nif (data.skipTransactionSave || data.saveFailed || data.duplicateTransaction || !tx?.id) {\n  return [{ json: { ...data, sheetSkipped: true, sheetSkipReason: 'no_new_saved_transaction' } }];\n}\n\nconst baseUrl = ($env.HELPER_API_URL || 'http://localhost:3001').replace(/\\/$/, '');\nconst apiKey = $env.HELPER_API_KEY || 'dev';\nconst headers = {\n  'Content-Type': 'application/json',\n  'x-api-key': apiKey,\n};\n\nlet user = data.user || {};\nlet sheetId = user.sheet_id || user.sheetId || null;\nlet sheetUrl = user.sheet_url || user.sheetUrl || null;\nlet sheetCreated = false;\nlet sheetCreateError = null;\n\ntry {\n  if (!sheetId && user.id) {\n    const createResult = await this.helpers.httpRequest({\n      method: 'POST',\n      url: `${baseUrl}/api/sheets/create`,\n      headers,\n      body: {\n        userId: user.id,\n        displayName: user.display_name || user.displayName || data.senderName || user.whatsapp_phone || 'Wariskan User',\n        phoneNumber: user.whatsapp_phone || data.senderPhone || '',\n      },\n      json: true,\n      ignoreHttpStatusErrors: true,\n    });\n\n    if (createResult?.success && createResult?.data?.sheetId) {\n      sheetId = createResult.data.sheetId;\n      sheetUrl = createResult.data.sheetUrl || null;\n      const sheetTab = createResult.data.sheetTab || null;\n      sheetCreated = true;\n      user = { ...user, sheet_id: sheetId, sheet_url: sheetUrl, sheet_tab: sheetTab };\n\n      const BASE = $env.SUPABASE_URL;\n      const KEY = $env.SUPABASE_SERVICE_KEY;\n      if (BASE && KEY) {\n        await this.helpers.httpRequest({\n          method: 'PATCH',\n          url: `${BASE}/rest/v1/users?id=eq.${user.id}`,\n          headers: {\n            apikey: KEY,\n            Authorization: `Bearer ${KEY}`,\n            'Content-Type': 'application/json',\n            Prefer: 'return=minimal',\n          },\n          body: { sheet_id: sheetId, sheet_url: sheetUrl },\n          json: true,\n          ignoreHttpStatusErrors: true,\n        });\n      }\n    } else {\n      sheetCreateError = createResult?.error || 'create_sheet_failed';\n    }\n  }\n\n  if (!sheetId) {\n    return [{ json: { ...data, user, sheetSkipped: true, sheetSkipReason: 'user_has_no_sheet_id', sheetCreateError } }];\n  }\n\n  const result = await this.helpers.httpRequest({\n    method: 'POST',\n    url: `${baseUrl}/api/sheets/append`,\n    headers,\n    body: {\n      sheetId,\n      sheetTab: user.sheet_tab || null,\n      user,\n      transaction: {\n        id: tx.id,\n        tanggal: tx.tanggal,\n        kategori: tx.category,\n        nominal: tx.nominal,\n        pihak: tx.pihak,\n        item: tx.item,\n        status: tx.status,\n        jatuh_tempo: tx.jatuh_tempo,\n        created_at: tx.created_at,\n      },\n    },\n    json: true,\n    ignoreHttpStatusErrors: true,\n  });\n\n  return [{\n    json: {\n      ...data,\n      user,\n      sheetResult: result,\n      sheetSaved: result?.success === true,\n      sheetTab: result?.data?.sheetTab || user.sheet_tab || null,\n      sheetSkipped: result?.skipped === true,\n      sheetError: result?.error || null,\n      sheetCreated,\n      sheetId,\n      sheetUrl,\n      sheetCreateError,\n    }\n  }];\n} catch (err) {\n  return [{ json: { ...data, user, sheetSaved: false, sheetError: err.message, sheetCreated, sheetId, sheetUrl, sheetCreateError } }];\n}"
       },
-      "notes": "Builder 3: Ini placeholder — helper API belum ada. Untuk MVP, bisa langsung call googleSheetsHelper.appendTransaction() via Code node jika lebih mudah."
+      "notes": "Calls local helpers/sheetsApiServer.js. Safe: returns original item even if Sheets is skipped or fails.",
+      "disabled": false
     },
     {
       "id": "node-18-send-reply",
       "name": "Send WhatsApp Reply",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3080, 100],
+      "position": [
+        3080,
+        100
+      ],
       "parameters": {
-        "jsCode": "const phone   = $json.senderPhone ?? $json.to ?? '';\nconst message = $json.replyText ?? $json.confirmationMessage ?? 'Transaksi dicatat!';\n\nif (!phone) {\n  return [{ json: { ...($input.first().json), wahaResult: null, error: 'No phone number' } }];\n}\n\nconst result = await this.helpers.httpRequest({\n  method:  'POST',\n  url:     'http://localhost:3000/api/sendText',\n  headers: {\n    'X-Api-Key':    'wariskan123',\n    'Content-Type': 'application/json',\n  },\n  body: {\n    session: 'default',\n    chatId:  `${phone}@c.us`,\n    text:    message,\n  },\n});\n\nreturn [{ json: { ...($input.first().json), wahaResult: result } }];"
+        "jsCode": "const item = $input.first().json;\n\nconst OWNER_CHAT_ID = '6281284818862@c.us';\nconst text = item.replyText || item.confirmationMessage || 'Transaksi dicatat!';\nconst chatId = OWNER_CHAT_ID;\n\nconst result = await this.helpers.httpRequest({\n  method: 'POST',\n  url: 'http://localhost:3000/api/sendText',\n  headers: {\n    'X-Api-Key': 'wariskan123',\n    'Content-Type': 'application/json',\n  },\n  body: { session: 'default', chatId, text },\n  json: true,\n  ignoreHttpStatusErrors: true,\n});\n\nconst BASE = $env.SUPABASE_URL;\nconst KEY = $env.SUPABASE_SERVICE_KEY;\nif (BASE && KEY) {\n  try {\n    const providerId = result?.key?.id || result?.id || null;\n    await this.helpers.httpRequest({\n      method: 'POST',\n      url: `${BASE}/rest/v1/outgoing_messages`,\n      headers: {\n        apikey: KEY,\n        Authorization: `Bearer ${KEY}`,\n        'Content-Type': 'application/json',\n        Prefer: 'return=minimal',\n      },\n      body: {\n        user_id: item.user?.id || null,\n        transaction_id: item.savedTransaction?.id || item.saveResult?.id || null,\n        incoming_message_id: item.messageId || null,\n        chat_id: chatId,\n        reply_text: text,\n        status: result?.error ? 'failed' : 'sent',\n        provider: 'waha',\n        provider_message_id: providerId,\n        provider_response: result,\n        error: result?.error?.message || null,\n      },\n      json: true,\n      ignoreHttpStatusErrors: true,\n    });\n  } catch (err) {\n    console.log(`[Send WhatsApp Reply] outgoing log skipped: ${err.message}`);\n  }\n}\n\nreturn [{ json: { ...item, chatId, ownerOnlyReply: true, originalChatId: item.chatId || item.replyTo || null, wahaResult: result } }];"
       }
     },
     {
@@ -500,9 +452,12 @@
       "name": "Build Reply Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2820, 100],
+      "position": [
+        2820,
+        100
+      ],
       "parameters": {
-        "jsCode": "// Build human-readable confirmation message in Bahasa Indonesia\nconst data = $input.first().json;\nconst ext  = data.extractedData;\n\nif (!ext || !data._valid) {\n  // Ask for clarification\n  return [{\n    json: {\n      ...data,\n      replyText: `Maaf kak, saya kurang paham maksudnya 🙏\\nBisa dijelaskan lebih detail?\\nContoh: \"jual 350rb\" atau \"beli gula 25rb\"`,\n    }\n  }];\n}\n\n// Format nominal\nconst nominal = Number(ext.nominal ?? 0).toLocaleString('id-ID');\n\n// Category-specific messages\nconst messages = {\n  pemasukan:      `✅ Dicatat! Pemasukan Rp ${nominal}${ext.item ? ` (${ext.item})` : ''} sudah masuk ke buku ya kak 📒`,\n  pengeluaran:    `✅ Dicatat! Pengeluaran Rp ${nominal}${ext.item ? ` untuk ${ext.item}` : ''} sudah masuk ke buku 📒`,\n  hutang:         `✅ Dicatat! Hutang Rp ${nominal}${ext.pihak ? ` ke ${ext.pihak}` : ''}${ext.jatuh_tempo ? ` (jatuh tempo: ${ext.jatuh_tempo})` : ''} sudah masuk 📒`,\n  piutang:        `✅ Dicatat! Piutang Rp ${nominal}${ext.pihak ? ` dari ${ext.pihak}` : ''}${ext.jatuh_tempo ? ` (jatuh tempo: ${ext.jatuh_tempo})` : ''} sudah masuk 📒`,\n  bayar_hutang:   `✅ Dicatat! Bayar hutang Rp ${nominal}${ext.pihak ? ` ke ${ext.pihak}` : ''} sudah masuk 📒`,\n  terima_piutang: `✅ Dicatat! Terima piutang Rp ${nominal}${ext.pihak ? ` dari ${ext.pihak}` : ''} sudah masuk 📒`,\n  unclear:        `🤔 Hmm, saya kurang yakin nih kak. Ini pemasukan atau pengeluaran?\\nNominalnya Rp ${nominal}${ext.pihak ? ` (${ext.pihak})` : ''}.`,\n};\n\nconst replyText = messages[ext.category] ?? messages.unclear;\n\nreturn [{ json: { ...data, replyText, to: data.senderPhone } }];"
+        "jsCode": "const input = $input.first().json;\nlet data = input;\ntry { data = { ...$('Validate JSON').first().json, ...input }; } catch (_) {}\n\nconst OWNER_JID = '6281284818862@c.us';\nconst money = (value) => `Rp ${Number(value ?? 0).toLocaleString('id-ID')}`;\nconst signedMoney = (value) => `${Number(value ?? 0) >= 0 ? '+' : '-'}${money(Math.abs(Number(value ?? 0)))}`;\n\nfunction examples() {\n  return [\n    'Contoh:',\n    'jual ayam 50rb',\n    'beli beras 125.000',\n    'hutang ke Bu Sari 1,5 juta',\n    'piutang Pak Budi 75rb jatuh tempo Jumat',\n  ].join('\\n');\n}\n\nfunction failReply(reason) {\n  return `Belum bisa aku catat ya.\\n${reason}\\n\\nTolong kirim ulang dengan format yang lebih jelas.\\n\\n${examples()}`;\n}\n\nif (data.imageDownloadFailed) {\n  return [{ json: { ...data, replyText: failReply('Fotonya belum berhasil aku ambil dari WhatsApp.'), to: OWNER_JID } }];\n}\n\nif (data.audioDownloadFailed || data.audioTranscriptionFailed) {\n  const detail = data.audioTranscriptionError || data.audioDownloadReason || 'audio belum terbaca';\n  return [{ json: { ...data, replyText: failReply(`Voice note belum berhasil aku transkrip. Detail: ${detail}`), to: OWNER_JID } }];\n}\n\nif (data.aiVisionFailed) {\n  const detail = data.aiVisionError || 'gambar belum terbaca AI';\n  return [{ json: { ...data, replyText: failReply(`Foto sudah masuk, tapi isi struk belum kebaca. Detail: ${detail}`), to: OWNER_JID } }];\n}\n\nif (data.commandResult?.type === 'query') {\n  const s = data.commandResult.summary || {};\n  const todayNet = Number(s.todayNet || 0);\n  const monthNet = Number(s.monthNet || 0);\n  const health = monthNet >= 0 ? 'Kas bulan ini masih positif.' : 'Kas bulan ini masih minus, perlu dicek pengeluaran terbesarnya.';\n\n  let replyText = [\n    'Ringkasan Wariskan',\n    '',\n    `Hari ini: ${signedMoney(todayNet)}`,\n    `Masuk: ${money(s.todayIn)}`,\n    `Keluar: ${money(s.todayOut)}`,\n    '',\n    `Bulan ini: ${signedMoney(monthNet)}`,\n    `Masuk: ${money(s.monthIn)}`,\n    `Keluar: ${money(s.monthOut)}`,\n    '',\n    `Hutang aktif: ${money(s.hutang || 0)}`,\n    `Piutang aktif: ${money(s.piutang || 0)}`,\n    '',\n    health,\n  ].join('\\n');\n\n  const debts = data.commandResult.debtRows || [];\n  if (debts.length) {\n    replyText += '\\n\\nHutang/piutang terbaru:';\n    for (const row of debts.slice(0, 5)) {\n      replyText += `\\n- ${row.category}: ${money(row.nominal)}${row.pihak ? ` (${row.pihak})` : ''}${row.item ? ` - ${row.item}` : ''}${row.jatuh_tempo ? ` | tempo ${row.jatuh_tempo}` : ''}`;\n    }\n  } else {\n    replyText += '\\n\\nBelum ada hutang/piutang aktif yang tercatat.';\n  }\n\n  replyText += '\\n\\nKetik: hutang / piutang / hapus terakhir / koreksi nominal 52000';\n  return [{ json: { ...data, replyText, to: OWNER_JID } }];\n}\n\nif (data.commandResult?.type === 'delete_last') {\n  const tx = data.commandResult.transaction;\n  let replyText = data.commandResult.notFound\n    ? 'Belum ada transaksi aktif yang bisa aku hapus.'\n    : `Oke, transaksi terakhir aku batalkan.\\n${tx.category}: ${money(tx.nominal)}${tx.item ? ` - ${tx.item}` : ''}`;\n  if (!data.commandResult.notFound) {\n    if (data.sheetSynced) replyText += '\\nGoogle Sheet juga sudah aku coret.';\n    else if (data.sheetSyncError) replyText += `\\nCatatan: database sudah berubah, tapi Sheet belum tersinkron (${String(data.sheetSyncError).slice(0, 90)}).`;\n  }\n  return [{ json: { ...data, replyText, to: OWNER_JID } }];\n}\n\nif (data.commandResult?.type === 'update_last') {\n  const tx = data.commandResult.transaction;\n  let replyText = 'Aku belum menangkap koreksinya. Contoh: koreksi nominal 52000';\n  if (data.commandResult.notFound) replyText = 'Belum ada transaksi aktif yang bisa aku koreksi.';\n  else if (tx) {\n    replyText = `Siap, transaksi terakhir sudah aku koreksi.\\n${tx.category}: ${money(tx.nominal)}${tx.item ? ` - ${tx.item}` : ''}${tx.pihak ? `\\nPihak: ${tx.pihak}` : ''}`;\n    if (data.sheetSynced) replyText += '\\nGoogle Sheet juga sudah ikut update.';\n    else if (data.sheetSyncError) replyText += `\\nCatatan: database sudah berubah, tapi Sheet belum tersinkron (${String(data.sheetSyncError).slice(0, 90)}).`;\n  }\n  return [{ json: { ...data, replyText, to: OWNER_JID } }];\n}\n\nif (data.saveFailed) {\n  const ext = data.extractedData ?? {};\n  const detail = data.saveError ? `\\nDetail teknis: ${String(data.saveError).slice(0, 220)}` : '';\n  return [{ json: { ...data, replyText: `Belum bisa aku simpan ke database.\\nYang terbaca: ${ext.category || 'unclear'} - ${money(ext.nominal || 0)}${detail}\\n\\nTolong cek Supabase/env sebelum demo.`, to: OWNER_JID } }];\n}\n\nif (data.duplicateTransaction) {\n  const tx = data.savedTransaction || {};\n  return [{ json: { ...data, replyText: `Pesan ini sudah pernah aku catat, jadi tidak aku duplikat.\\n${tx.category || 'Transaksi'}: ${money(tx.nominal)}`, to: OWNER_JID } }];\n}\n\nconst tx = data.savedTransaction || data.saveResult || {};\nconst ext = data.extractedData ?? {};\nconst category = tx.category || ext.category || 'unclear';\nconst nominal = Number(tx.nominal ?? ext.nominal ?? 0) || 0;\nconst labels = {\n  pemasukan: 'Pemasukan',\n  pengeluaran: 'Pengeluaran',\n  hutang: 'Hutang',\n  piutang: 'Piutang',\n  bayar_hutang: 'Bayar hutang',\n  terima_piutang: 'Terima piutang',\n  unclear: 'Tidak jelas',\n};\nconst signs = {\n  pemasukan: '+',\n  terima_piutang: '+',\n  pengeluaran: '-',\n  bayar_hutang: '-',\n  hutang: '!',\n  piutang: '!',\n  unclear: '?',\n};\n\nlet summary = null;\ntry {\n  const BASE = $env.SUPABASE_URL;\n  const KEY = $env.SUPABASE_SERVICE_KEY;\n  if (BASE && KEY && data.user?.id) {\n    const headers = { apikey: KEY, Authorization: `Bearer ${KEY}` };\n    const startMonth = new Date();\n    startMonth.setDate(1);\n    const monthDate = startMonth.toISOString().slice(0, 10);\n    const today = new Date().toISOString().slice(0, 10);\n    const rows = await this.helpers.httpRequest({\n      method: 'GET',\n      url: `${BASE}/rest/v1/transactions?user_id=eq.${data.user.id}&tanggal=gte.${monthDate}&status=eq.aktif&select=id,category,nominal,tanggal,status`,\n      headers,\n      json: true,\n      ignoreHttpStatusErrors: true,\n    });\n    if (Array.isArray(rows)) {\n      const summaryRows = [...rows];\n      if (tx?.id && tx.status !== 'dibatalkan' && !summaryRows.some((row) => row.id === tx.id)) {\n        summaryRows.push({ id: tx.id, category, nominal, tanggal: tx.tanggal || today, status: tx.status || 'aktif' });\n      }\n      summary = summaryRows.reduce((acc, row) => {\n        const amount = Number(row.nominal || 0);\n        const isToday = row.tanggal === today;\n        if (row.category === 'pemasukan' || row.category === 'terima_piutang') { acc.monthIn += amount; if (isToday) acc.todayIn += amount; }\n        if (row.category === 'pengeluaran' || row.category === 'bayar_hutang') { acc.monthOut += amount; if (isToday) acc.todayOut += amount; }\n        if (row.category === 'hutang') acc.hutang += amount;\n        if (row.category === 'piutang') acc.piutang += amount;\n        return acc;\n      }, { monthIn: 0, monthOut: 0, todayIn: 0, todayOut: 0, hutang: 0, piutang: 0 });\n      summary.monthNet = summary.monthIn - summary.monthOut;\n      summary.todayNet = summary.todayIn - summary.todayOut;\n    }\n  }\n} catch (err) {\n  console.log(`[Build Reply Message] summary skipped: ${err.message}`);\n}\n\nconst isWeak = category === 'unclear' || nominal <= 0 || data._usedFallbackExtraction || ext.confidence === 'low';\nif (isWeak) {\n  let replyText = `Aku belum yakin ini transaksi yang benar.\\nNominal terbaca: ${money(nominal)}\\n`;\n  if (tx.item || ext.item) replyText += `Item: ${tx.item || ext.item}\\n`;\n  replyText += `\\nTolong koreksi atau kirim ulang ya.\\n\\n${examples()}`;\n  return [{ json: { ...data, replyText, to: OWNER_JID, summary } }];\n}\n\nconst itemLine = tx.item || ext.item || labels[category] || 'Transaksi';\nlet replyText = `Siap, aku catat.\\n\\n${signs[category] || ''} ${money(nominal)}\\n${itemLine}`;\nif (tx.pihak || ext.pihak) replyText += `\\nPihak: ${tx.pihak || ext.pihak}`;\nif (data.transcript) replyText += `\\n\\nAku dengar: \"${String(data.transcript).slice(0, 160)}\"`;\n\nif (data.sheetSaved) {\n  replyText += data.sheetCreated ? `\\n\\nGoogle Sheet baru sudah dibuat dan transaksi tersimpan.` : `\\n\\nTersimpan di Google Sheet.`;\n} else if (data.sheetSkipped) {\n  replyText += data.sheetCreateError\n    ? `\\n\\nGoogle Sheet belum dibuat (${String(data.sheetCreateError).slice(0, 90)}).`\n    : `\\n\\nGoogle Sheet belum aktif untuk user ini.`;\n} else if (data.sheetError) {\n  replyText += `\\n\\nGoogle Sheet belum tersimpan (${String(data.sheetError).slice(0, 90)}).`;\n}\n\nif (summary) {\n  replyText += `\\n\\nHari ini: ${signedMoney(summary.todayNet)}\\nBulan ini: ${signedMoney(summary.monthNet)}`;\n  if (summary.hutang || summary.piutang) replyText += `\\nHutang ${money(summary.hutang)} - Piutang ${money(summary.piutang)}`;\n}\n\nreplyText += `\\n\\nKalau salah, balas: koreksi nominal 52000 / hapus terakhir / ringkasan`;\n\nreturn [{ json: { ...data, replyText, to: OWNER_JID, summary } }];"
       }
     },
     {
@@ -510,7 +465,10 @@
       "name": "Send Error Notification",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4,
-      "position": [1520, 520],
+      "position": [
+        1520,
+        520
+      ],
       "parameters": {
         "method": "POST",
         "url": "={{ $env.SLACK_ERROR_WEBHOOK ?? 'https://hooks.slack.com/services/REPLACE_ME' }}",
@@ -525,7 +483,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"text\": \"🚨 *Wariskan Workflow Error*\",\n  \"attachments\": [{\n    \"color\": \"danger\",\n    \"fields\": [\n      { \"title\": \"Error\",   \"value\": {{ JSON.stringify($json.error?.message ?? $json.message ?? 'Unknown error') }}, \"short\": false },\n      { \"title\": \"Node\",    \"value\": {{ JSON.stringify($runIndex?.toString() ?? 'unknown') }}, \"short\": true },\n      { \"title\": \"Time\",    \"value\": {{ JSON.stringify(new Date().toISOString()) }}, \"short\": true }\n    ]\n  }]\n}",
+        "jsonBody": "={\n  \"text\": \"[Error] *Wariskan Workflow Error*\",\n  \"attachments\": [{\n    \"color\": \"danger\",\n    \"fields\": [\n      { \"title\": \"Error\",   \"value\": {{ JSON.stringify($json.error?.message ?? $json.message ?? 'Unknown error') }}, \"short\": false },\n      { \"title\": \"Node\",    \"value\": {{ JSON.stringify($runIndex?.toString() ?? 'unknown') }}, \"short\": true },\n      { \"title\": \"Time\",    \"value\": {{ JSON.stringify(new Date().toISOString()) }}, \"short\": true }\n    ]\n  }]\n}",
         "options": {
           "response": {
             "response": {
@@ -534,101 +492,257 @@
           }
         }
       }
+    },
+    {
+      "id": "node-12b-merge-whisper-result",
+      "name": "Merge Whisper Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2260,
+        100
+      ],
+      "parameters": {
+        "jsCode": "let original = {};\ntry {\n  original = $('Download Audio Media').first().json || {};\n} catch (err) {\n  original = {};\n}\n\nconst response = $input.first().json || {};\nconst transcript = response.text || response.transcript || response.data?.text || '';\nconst errorMessage = response.error?.message || response.message || response.error || '';\n\nif (original.audioDownloadFailed) {\n  return [{\n    json: {\n      ...original,\n      audioTranscriptionFailed: true,\n      audioTranscriptionError: original.audioDownloadReason || 'Audio download failed',\n      transcript: '',\n      textContent: '',\n      ai_model_version: 'openai-transcription-unavailable',\n    }\n  }];\n}\n\nif (!transcript.trim()) {\n  return [{\n    json: {\n      ...original,\n      openaiTranscription: response,\n      audioTranscriptionFailed: true,\n      audioTranscriptionError: errorMessage || 'OpenAI returned an empty transcript',\n      transcript: '',\n      textContent: '',\n      ai_model_version: 'openai-transcription-unavailable',\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...original,\n    transcript,\n    textContent: transcript,\n    openaiTranscription: response,\n    ai_model_version: $env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe',\n  }\n}];"
+      }
     }
   ],
   "connections": {
     "WhatsApp Verification": {
       "main": [
-        [{ "node": "Verify Token Match", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Verify Token Match",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Verify Token Match": {
       "main": [
-        [{ "node": "Respond Hub Challenge",  "type": "main", "index": 0 }],
-        [{ "node": "Respond Forbidden",      "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Respond Hub Challenge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Forbidden",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "WhatsApp Messages": {
       "main": [
-        [{ "node": "Parse WhatsApp Payload", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Parse WhatsApp Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Parse WhatsApp Payload": {
       "main": [
-        [{ "node": "Get or Create User", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get or Create User",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get or Create User": {
       "main": [
-        [{ "node": "Log Incoming Message", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Log Incoming Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Log Incoming Message": {
       "main": [
-        [{ "node": "Route by Message Type", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Route by Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Route by Message Type": {
       "main": [
-        [{ "node": "Handle Text",          "type": "main", "index": 0 }],
-        [{ "node": "Download Audio Media", "type": "main", "index": 0 }],
-        [{ "node": "Download Image Media", "type": "main", "index": 0 }],
-        [{ "node": "Send Unsupported Reply","type": "main", "index": 0 }]
+        [
+          {
+            "node": "Handle Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Audio Media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Download Image Media",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Unsupported Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Handle Text": {
       "main": [
-        [{ "node": "Claude Extract", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Claude Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Download Audio Media": {
       "main": [
-        [{ "node": "Whisper STT", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Whisper STT",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Whisper STT": {
       "main": [
-        [{ "node": "Claude Extract", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Merge Whisper Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Download Image Media": {
       "main": [
-        [{ "node": "Claude Vision", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Claude Vision",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Claude Extract": {
       "main": [
-        [{ "node": "Validate JSON", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Validate JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Claude Vision": {
       "main": [
-        [{ "node": "Validate JSON", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Validate JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Validate JSON": {
       "main": [
-        [{ "node": "Save to Supabase", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Save to Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Save to Supabase": {
       "main": [
-        [{ "node": "Save to Google Sheets", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Save to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Save to Google Sheets": {
       "main": [
-        [{ "node": "Build Reply Message", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Build Reply Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Build Reply Message": {
       "main": [
-        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Send Unsupported Reply": {
       "main": [
-        [{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send WhatsApp Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Whisper Result": {
+      "main": [
+        [
+          {
+            "node": "Claude Extract",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
@@ -640,5 +754,9 @@
   },
   "staticData": null,
   "pinData": {},
-  "tags": [{ "name": "wariskan" }]
+  "tags": [
+    {
+      "name": "wariskan"
+    }
+  ]
 }

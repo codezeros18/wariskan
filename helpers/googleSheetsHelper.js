@@ -10,12 +10,23 @@ import { google }   from 'googleapis';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import 'dotenv/config';
-import { formatRupiah, formatTanggalIndonesia } from './formatters.js';
+import { formatRupiah, formatTanggalIndonesia, parseTanggalIndonesia } from './formatters.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
 const TRANSAKSI_TAB  = 'Transaksi';
-const TRANSAKSI_COLS = 8; // columns A–H
+const TRANSAKSI_COLS = 9; // columns A-I
+const TRANSAKSI_HEADERS = [
+  'ID',
+  'Tanggal',
+  'Kategori',
+  'Nominal',
+  'Pihak',
+  'Item',
+  'Status',
+  'Jatuh Tempo',
+  'Created At',
+];
 
 const CACHE_TTL_MS    = 5 * 60 * 1000;   // 5 minutes
 const RETRY_DELAYS_MS = [200, 1000, 5000]; // exponential backoff
@@ -23,7 +34,7 @@ const RETRY_DELAYS_MS = [200, 1000, 5000]; // exponential backoff
 // Column positions (0-based index into each row array)
 const COL = {
   ID: 0, TANGGAL: 1, KATEGORI: 2, NOMINAL: 3,
-  PIHAK: 4, ITEM: 5, STATUS: 6, JATUH_TEMPO: 7,
+  PIHAK: 4, ITEM: 5, STATUS: 6, JATUH_TEMPO: 7, CREATED_AT: 8,
 };
 
 // Row background tint per transaction category (RGB 0–1 scale)
@@ -54,6 +65,22 @@ function isRetryable(err) {
   return s === 500 || s === 502 || s === 503;
 }
 
+function describeGoogleError(err) {
+  const status = err.response?.status;
+  const data = err.response?.data;
+  const detail = data?.error_description ||
+    data?.error?.message ||
+    data?.message ||
+    err.message ||
+    'unknown_error';
+  const code = data?.error || data?.error?.status || data?.error?.code || err.code;
+  return [
+    status ? `HTTP ${status}` : null,
+    code ? String(code) : null,
+    detail ? String(detail) : null,
+  ].filter(Boolean).join(' - ');
+}
+
 /**
  * Retry wrapper with exponential backoff.
  * - Auth errors  → throws immediately with .isAuth = true
@@ -68,7 +95,7 @@ async function withRetry(fn, label) {
     } catch (err) {
       lastErr = err;
       if (isAuthError(err)) {
-        const e = new Error(`[Sheets] Auth error on "${label}": ${err.message}`);
+        const e = new Error(`[Sheets] Auth error on "${label}": ${describeGoogleError(err)}`);
         e.isAuth = true;
         throw e;
       }
@@ -199,7 +226,6 @@ function parseSheetDate(value) {
   if (typeof value === 'string') {
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(value); // ISO fallback
     // Indonesian formatted string fallback (if column format overrides)
-    const { parseTanggalIndonesia } = await import('./formatters.js').catch(() => ({ parseTanggalIndonesia: () => null }));
     return parseTanggalIndonesia?.(value) ?? null;
   }
   return null;
@@ -222,6 +248,7 @@ function rowToTransaction(row) {
     item:       r[COL.ITEM]       || null,
     status:     r[COL.STATUS]     || '',
     jatuhTempo: parseSheetDate(r[COL.JATUH_TEMPO]),
+    createdAt:  parseSheetDate(r[COL.CREATED_AT]),
   };
 }
 
@@ -229,6 +256,75 @@ function rowToTransaction(row) {
 function rowNumFromRange(rangeStr) {
   const m = rangeStr?.match(/:?[A-Z](\d+)/);
   return m ? parseInt(m[1], 10) : null;
+}
+
+function quoteSheetTab(tabName) {
+  return `'${String(tabName).replace(/'/g, "''")}'`;
+}
+
+function buildUserTabName(displayName, phoneNumber, userId) {
+  const baseName = String(displayName || 'user')
+    .toLowerCase()
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'user';
+  const suffix = String(phoneNumber || userId || '').replace(/\D/g, '').slice(-4) ||
+    String(userId || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 4) ||
+    '0000';
+  return `${baseName}-${suffix}`.slice(0, 90);
+}
+
+function getTransactionTab(meta, preferredTabName = TRANSAKSI_TAB) {
+  if (preferredTabName && meta.tabs[preferredTabName] !== undefined) {
+    return { name: preferredTabName, id: meta.tabs[preferredTabName] };
+  }
+
+  if (meta.tabs[TRANSAKSI_TAB] !== undefined) {
+    return { name: TRANSAKSI_TAB, id: meta.tabs[TRANSAKSI_TAB] };
+  }
+
+  const firstTab = Object.entries(meta.tabs)[0];
+  if (!firstTab) {
+    throw new Error('[Sheets] No tab found in spreadsheet.');
+  }
+
+  console.warn(`[Sheets] Tab "${TRANSAKSI_TAB}" not found; using first tab "${firstTab[0]}" instead.`);
+  return { name: firstTab[0], id: firstTab[1] };
+}
+
+async function ensureTransactionTab(spreadsheetId, tabName) {
+  const sheets = await getSheetsClient();
+  let meta = await getSpreadsheetMeta(spreadsheetId);
+  if (meta.tabs[tabName] !== undefined) {
+    return { name: tabName, id: meta.tabs[tabName], created: false };
+  }
+
+  await withRetry(
+    () => sheets.spreadsheets.batchUpdate({
+      spreadsheetId,
+      requestBody: {
+        requests: [{ addSheet: { properties: { title: tabName } } }],
+      },
+    }),
+    `ensureTransactionTab:add(${tabName})`
+  );
+
+  _metaCache.delete(spreadsheetId);
+  meta = await getSpreadsheetMeta(spreadsheetId);
+
+  await withRetry(
+    () => sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `${quoteSheetTab(tabName)}!A1:I1`,
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [TRANSAKSI_HEADERS] },
+    }),
+    `ensureTransactionTab:headers(${tabName})`
+  );
+
+  return { name: tabName, id: meta.tabs[tabName], created: true };
 }
 
 // ─── Formatting request builders ──────────────────────────────────────────────
@@ -271,6 +367,32 @@ function buildStrikethroughRequest(numericTabId, rowIndex) {
   };
 }
 
+function transactionToSheetRow(transaction) {
+  const {
+    id,
+    tanggal,
+    kategori,
+    nominal,
+    pihak,
+    item,
+    status,
+    jatuhTempo,
+    createdAt,
+  } = transaction;
+
+  return [
+    id,
+    toISODate(tanggal),
+    kategori,
+    formatRupiah(nominal),
+    pihak ?? '',
+    item ?? '',
+    status,
+    jatuhTempo ? toISODate(jatuhTempo) : '',
+    createdAt ? new Date(createdAt).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }) : '',
+  ];
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
@@ -285,38 +407,85 @@ function buildStrikethroughRequest(numericTabId, rowIndex) {
  */
 export async function createUserSheet(userId, displayName, phoneNumber) {
   return safeCall(async () => {
-    const templateId = process.env.GOOGLE_TEMPLATE_SHEET_ID;
-    if (!templateId) {
-      const e = new Error('[Sheets] GOOGLE_TEMPLATE_SHEET_ID is not set in .env');
-      e.isAuth = true;
-      throw e;
+    const masterSheetId = process.env.GOOGLE_MASTER_SHEET_ID;
+    if (masterSheetId) {
+      const tabName = buildUserTabName(displayName, phoneNumber, userId);
+      const tab = await ensureTransactionTab(masterSheetId, tabName);
+      return {
+        sheetId: masterSheetId,
+        sheetUrl: `https://docs.google.com/spreadsheets/d/${masterSheetId}/edit`,
+        sheetTab: tab.name,
+        tabCreated: tab.created,
+      };
     }
 
+    const templateId = process.env.GOOGLE_TEMPLATE_SHEET_ID;
     const drive      = await getDriveClient();
+    const sheets     = await getSheetsClient();
     const phoneLast4 = String(phoneNumber).replace(/\D/g, '').slice(-4);
     const fileName   = `Wariskan - ${displayName} - ${phoneLast4}`;
 
-    // Copy the template
-    const { data: copied } = await withRetry(
-      () => drive.files.copy({
-        fileId:      templateId,
-        requestBody: { name: fileName },
-        fields:      'id,webViewLink',
-      }),
-      `drive.files.copy(userId=${userId})`
-    );
+    let fileId;
+    let sheetUrl;
 
-    // Share: anyone with link can view (warung owner can share with family)
-    await withRetry(
-      () => drive.permissions.create({
-        fileId:      copied.id,
-        requestBody: { role: 'reader', type: 'anyone' },
-        fields:      'id',
-      }),
-      `drive.permissions.create(fileId=${copied.id})`
-    );
+    if (templateId) {
+      // Copy the template when configured.
+      const { data: copied } = await withRetry(
+        () => drive.files.copy({
+          fileId:      templateId,
+          requestBody: { name: fileName },
+          fields:      'id,webViewLink',
+        }),
+        `drive.files.copy(userId=${userId})`
+      );
+      fileId = copied.id;
+      sheetUrl = copied.webViewLink;
+    } else {
+      // No template: create a ready-to-use spreadsheet with the expected tab.
+      const { data: created } = await withRetry(
+        () => sheets.spreadsheets.create({
+          requestBody: {
+            properties: { title: fileName },
+            sheets: [{ properties: { title: TRANSAKSI_TAB } }],
+          },
+          fields: 'spreadsheetId,spreadsheetUrl',
+        }),
+        `spreadsheets.create(userId=${userId})`
+      );
 
-    return { sheetId: copied.id, sheetUrl: copied.webViewLink };
+      fileId = created.spreadsheetId;
+      sheetUrl = created.spreadsheetUrl;
+
+      await withRetry(
+        () => sheets.spreadsheets.values.update({
+          spreadsheetId: fileId,
+          range: `${quoteSheetTab(TRANSAKSI_TAB)}!A1:I1`,
+          valueInputOption: 'USER_ENTERED',
+          requestBody: {
+            values: [TRANSAKSI_HEADERS],
+          },
+        }),
+        `spreadsheets.create:headers(userId=${userId})`
+      );
+    }
+
+    // Share: anyone with link can view (warung owner can share with family).
+    // Some Google Workspace policies block public link sharing; writing still works
+    // because the service account owns or copied the file, so don't fail creation.
+    try {
+      await withRetry(
+        () => drive.permissions.create({
+          fileId,
+          requestBody: { role: 'reader', type: 'anyone' },
+          fields:      'id',
+        }),
+        `drive.permissions.create(fileId=${fileId})`
+      );
+    } catch (err) {
+      console.warn(`[Sheets] Public sharing skipped for ${fileId}: ${err.message}`);
+    }
+
+    return { sheetId: fileId, sheetUrl };
   }, 'createUserSheet');
 }
 
@@ -334,38 +503,46 @@ export async function createUserSheet(userId, displayName, phoneNumber) {
  *   pihak:      string|null,
  *   item:       string|null,
  *   status:     string,
- *   jatuhTempo: Date|string|null
+ *   jatuhTempo: Date|string|null,
+ *   createdAt:  Date|string|null
  * }} transaction
  * @returns {{ success, data: { rowNumber } }}
  */
 export async function appendTransaction(sheetId, transaction) {
   return safeCall(async () => {
-    const { id, tanggal, kategori, nominal, pihak, item, status, jatuhTempo } = transaction;
+    const {
+      id,
+      tanggal,
+      kategori,
+      nominal,
+      pihak,
+      item,
+      status,
+      jatuhTempo,
+      createdAt,
+      tabName,
+      userDisplayName,
+      phoneNumber,
+      userId,
+    } = transaction;
 
     const sheets = await getSheetsClient();
-    const meta   = await getSpreadsheetMeta(sheetId);
-    const tabId  = meta.tabs[TRANSAKSI_TAB];
+    const masterSheetId = process.env.GOOGLE_MASTER_SHEET_ID;
+    const preferredTabName = tabName ||
+      (masterSheetId && sheetId === masterSheetId
+        ? buildUserTabName(userDisplayName, phoneNumber, userId)
+        : TRANSAKSI_TAB);
+    const tab = masterSheetId && sheetId === masterSheetId
+      ? await ensureTransactionTab(sheetId, preferredTabName)
+      : getTransactionTab(await getSpreadsheetMeta(sheetId), preferredTabName);
 
-    if (tabId === undefined) {
-      throw new Error(`[Sheets] Tab "${TRANSAKSI_TAB}" not found in sheet ${sheetId}. Check template.`);
-    }
-
-    const row = [
-      id,
-      toISODate(tanggal),              // Sheets auto-recognizes as date
-      kategori,
-      formatRupiah(nominal),           // "Rp 1.250.000" stored as text
-      pihak      ?? '',
-      item       ?? '',
-      status,
-      jatuhTempo ? toISODate(jatuhTempo) : '',
-    ];
+    const row = transactionToSheetRow({ id, tanggal, kategori, nominal, pihak, item, status, jatuhTempo, createdAt });
 
     // Append the row; INSERT_ROWS avoids overwriting formulas below existing data
     const appendRes = await withRetry(
       () => sheets.spreadsheets.values.append({
         spreadsheetId:    sheetId,
-        range:            `${TRANSAKSI_TAB}!A:H`,
+        range:            `${quoteSheetTab(tab.name)}!A:I`,
         valueInputOption: 'USER_ENTERED',
         insertDataOption: 'INSERT_ROWS',
         requestBody:      { values: [row] },
@@ -383,15 +560,79 @@ export async function appendTransaction(sheetId, transaction) {
         () => sheets.spreadsheets.batchUpdate({
           spreadsheetId: sheetId,
           requestBody: {
-            requests: [buildBgColorRequest(tabId, rowNum - 1, color)],
+            requests: [buildBgColorRequest(tab.id, rowNum - 1, color)],
           },
         }),
         `appendTransaction:color(${id})`
       );
     }
 
-    return { rowNumber: rowNum };
+    return { rowNumber: rowNum, sheetTab: tab.name };
   }, 'appendTransaction');
+}
+
+/**
+ * Update an existing transaction row by ID.
+ * Used when WhatsApp commands correct or cancel the latest transaction.
+ *
+ * @param {string} sheetId
+ * @param {object} transaction
+ * @returns {{ success, data: { rowNumber, updated } }}
+ */
+export async function updateTransactionRow(sheetId, transaction) {
+  return safeCall(async () => {
+    const masterSheetId = process.env.GOOGLE_MASTER_SHEET_ID;
+    const preferredTabName = transaction.tabName ||
+      (masterSheetId && sheetId === masterSheetId
+        ? buildUserTabName(transaction.userDisplayName, transaction.phoneNumber, transaction.userId)
+        : TRANSAKSI_TAB);
+    const tab = masterSheetId && sheetId === masterSheetId
+      ? await ensureTransactionTab(sheetId, preferredTabName)
+      : getTransactionTab(await getSpreadsheetMeta(sheetId), preferredTabName);
+
+    const sheets = await getSheetsClient();
+    const { data: colData } = await withRetry(
+      () => sheets.spreadsheets.values.get({
+        spreadsheetId: sheetId,
+        range: `${quoteSheetTab(tab.name)}!A:A`,
+      }),
+      `updateTransactionRow:find(${transaction.id})`
+    );
+
+    const rows = colData.values ?? [];
+    const rowIdx = rows.findIndex((r) => r[0] === transaction.id);
+    if (rowIdx === -1) {
+      return { rowNumber: null, updated: false, sheetTab: tab.name };
+    }
+
+    const rowNum = rowIdx + 1;
+    await withRetry(
+      () => sheets.spreadsheets.values.update({
+        spreadsheetId: sheetId,
+        range: `${quoteSheetTab(tab.name)}!A${rowNum}:I${rowNum}`,
+        valueInputOption: 'USER_ENTERED',
+        requestBody: { values: [transactionToSheetRow(transaction)] },
+      }),
+      `updateTransactionRow:write(${transaction.id})`
+    );
+
+    const requests = [
+      buildBgColorRequest(tab.id, rowIdx, CATEGORY_BG[transaction.kategori] ?? CATEGORY_BG.unclear),
+    ];
+    if (transaction.status === 'dibatalkan') {
+      requests.push(buildStrikethroughRequest(tab.id, rowIdx));
+    }
+
+    await withRetry(
+      () => sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: { requests },
+      }),
+      `updateTransactionRow:format(${transaction.id})`
+    );
+
+    return { rowNumber: rowNum, updated: true, sheetTab: tab.name };
+  }, 'updateTransactionRow');
 }
 
 /**
@@ -472,7 +713,7 @@ export async function getTransactionsInRange(sheetId, startDate, endDate) {
     const { data } = await withRetry(
       () => sheets.spreadsheets.values.get({
         spreadsheetId:    sheetId,
-        range:            `${TRANSAKSI_TAB}!A:H`,
+        range:            `${TRANSAKSI_TAB}!A:I`,
         valueRenderOption: 'UNFORMATTED_VALUE', // dates → serial numbers, text → strings
       }),
       `getTransactionsInRange(${sheetId})`
@@ -508,7 +749,7 @@ export async function getSheetSummary(sheetId) {
     const { data } = await withRetry(
       () => sheets.spreadsheets.values.get({
         spreadsheetId:    sheetId,
-        range:            `${TRANSAKSI_TAB}!A:H`,
+        range:            `${TRANSAKSI_TAB}!A:I`,
         valueRenderOption: 'UNFORMATTED_VALUE',
       }),
       `getSheetSummary(${sheetId})`
