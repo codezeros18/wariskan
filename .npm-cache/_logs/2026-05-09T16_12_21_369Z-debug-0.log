@@ -7,11 +7,11 @@
 6 silly config load:file:C:\Users\MSI\AppData\Roaming\npm\etc\npmrc
 7 verbose title npm exec n8n@2.18.5 start
 8 verbose argv "exec" "--yes" "--" "n8n@2.18.5" "start"
-9 verbose logfile logs-max:10 dir:D:\wariskan\wariskan\.npm-cache\_logs\2026-05-08T14_34_47_676Z-
-10 verbose logfile D:\wariskan\wariskan\.npm-cache\_logs\2026-05-08T14_34_47_676Z-debug-0.log
+9 verbose logfile logs-max:10 dir:D:\wariskan\wariskan\.npm-cache\_logs\2026-05-09T16_12_21_369Z-
+10 verbose logfile D:\wariskan\wariskan\.npm-cache\_logs\2026-05-09T16_12_21_369Z-debug-0.log
 11 silly logfile start cleaning logs, removing 1 files
 12 silly logfile done cleaning log files
 13 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
-14 http fetch GET 200 https://registry.npmjs.org/n8n 585ms (cache revalidated)
+14 http fetch GET 200 https://registry.npmjs.org/n8n 240ms (cache revalidated)
 15 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
 16 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
